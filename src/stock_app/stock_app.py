@@ -11,7 +11,8 @@ import plotly.express as px
 import dash_trich_components as dtc
 from style import page_style
 import yfinance as yf
-
+from pandas.core.indexes.multi import MultiIndex
+import functools
 
 app = dash.Dash(__name__, external_stylesheets=[
                                                 dbc.themes.SOLAR,
@@ -131,9 +132,11 @@ appside_layout = html.Div(
                                                                         icon="bi bi-plus-slash-minus"
                                                                         ),
                                                     ],
-                                                    bg_color="#0ca678",
+                                                    #bg_color="#0ca678",
                                                 ),
-                                                dbc.Col([], id="page_content", style=page_style)
+                                                dbc.Col([], id="page_content", 
+                                                        #style=page_style
+                                                        )
                                                 ]
                                               )
                                 )
@@ -142,7 +145,7 @@ appside_layout = html.Div(
 
 app.layout = appside_layout
 
-app.validation_layout = html.Div([appside_layout, stockprice_layout])
+app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout])
 
 @app.callback(Output(component_id="page_content", component_property="children"),
               Input(component_id="id_price_chart", component_property="n_clicks_timestamp")
@@ -152,7 +155,9 @@ def sidebar_display(price_chart: str, ):#boxplot: str, scatter: str, corr: str):
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if not ctx.triggered:
-        return appside_layout
+        pass
+        #return main_layout
+        #return appside_layout
         #return appside_layout
     elif button_id == "id_price_chart": ##"id_hist":
         return stockprice_layout
@@ -163,14 +168,14 @@ def sidebar_display(price_chart: str, ):#boxplot: str, scatter: str, corr: str):
     # elif button_id == "id_corr":
     #     return multicoll_layout
     else:
-        pass
-        #return intro_layout 
-
+        print("nothing new to show")
+        #return intro_layout
+@functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="stock_price_graph", component_property="figure"),
               Input(component_id="id_stock_date", component_property="start_date"),
-            Input(component_id="id_stock_date", component_property="end_date"),
-            Input(component_id="id_submit_stock_request", component_property="n_clicks"),
-            Input(component_id="id_stock_ticker", component_property="value")
+              Input(component_id="id_stock_date", component_property="end_date"),
+              Input(component_id="id_submit_stock_request", component_property="n_clicks"),
+              Input(component_id="id_stock_ticker", component_property="value")
             )
 def get_date(start_date, end_date, button_click, stock_ticker):
     
@@ -178,18 +183,23 @@ def get_date(start_date, end_date, button_click, stock_ticker):
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
     if button_id != 'id_submit_stock_request':
-        PreventUpdate
+        return  dash.no_update
         
     if button_id == 'id_submit_stock_request':
         print(f"start_date: {start_date}")
         print(f"end_date: {end_date}")
+        print(f"stock_ticker: {stock_ticker}")
+    
         data = yf.download(stock_ticker, start=start_date, end=end_date)
-        # fig = px.line(data_frame=data, y="Close", 
-        #                 template="plotly_dark",
-        #                 title=f"{stock_ticker} Close price - crowdstrike",
-        #                 #height=800, width=1800
-        #                 )
-        # return fig
+        if isinstance(data.columns, MultiIndex):
+            data.columns = data.columns.droplevel(1)
+        print(f"data: {data.head()}")
+        fig = px.line(data_frame=data, y="Close", 
+                        template="plotly_dark",
+                        title=f"{stock_ticker} Close price - crowdstrike",
+                        #height=800, width=1800
+                        )
+        return fig
     #else:
     #    PreventUpdate
         
