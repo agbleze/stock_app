@@ -196,7 +196,7 @@ def get_date(start_date, end_date, button_click, stock_ticker):
         print(f"data: {data.head()}")
         fig = px.line(data_frame=data, y="Close", 
                         template="plotly_dark",
-                        title=f"{stock_ticker} Close price - crowdstrike",
+                        title=f"{stock_ticker} Close price",
                         #height=800, width=1800
                         )
         return fig
