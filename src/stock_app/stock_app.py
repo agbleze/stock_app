@@ -124,7 +124,7 @@ appside_layout = html.Div(
                                                         #             ),
                                                         
                                                         
-                                                        dtc.SideBarItem(id="id_data_viz", label="Data Visualization", 
+                                                        dtc.SideBarItem(id="id_portfolio", label="Portfolio Monitory", 
                                                                         icon="bi bi-bar-chart"
                                                                         ),
                                                         
@@ -203,6 +203,9 @@ def get_date(start_date, end_date, button_click, stock_ticker):
     #else:
     #    PreventUpdate
         
+# TODO: Portfolio update
+# get all portfolio ticker, download data, create graph and show % change
+# when percentage change is greater than 10% then send an email notification
 
 
 
