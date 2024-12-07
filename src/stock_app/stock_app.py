@@ -204,10 +204,14 @@ def get_date(start_date, end_date, button_click, stock_ticker):
     #    PreventUpdate
         
 # TODO: Portfolio update
-# get all portfolio ticker, download data, create graph and show % change
+# get all portfolio ticker, download data, create graph and show % change for each
 # when percentage change is greater than 10% then send an email notification
 
+# what happens when a company beats its guidance 
 
+
+# TODO: performance calculator similar to that on SAP wensite
+# https://www.sap.com/investors/en/stock.html
 
 if __name__ == "__main__":
     app.run_server(debug=True)
