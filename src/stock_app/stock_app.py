@@ -14,6 +14,18 @@ import yfinance as yf
 from pandas.core.indexes.multi import MultiIndex
 import functools
 
+
+company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
+                  "SAP": "SAP", "Dell Technologies": "DELL",
+                  "Brinker International": "BKJ.F", "Unipol Gruppo SpA": "UIPN.MU",
+                  "CaixaBank SA": "48CA.MU", "Bilfinger": "0NRG.IL",
+                  "ASML Holding": "ASME.DE", "Süss MicroTec": "SMHN.DE",
+                  "Heidelberg Materials": "HEIU.MU", "Brenntag": "BNR.DE"
+                  }
+
+
+
+
 app = dash.Dash(__name__, external_stylesheets=[
                                                 dbc.themes.SOLAR,
                                                 dbc.icons.BOOTSTRAP,
@@ -143,14 +155,22 @@ appside_layout = html.Div(
                             ]
                         )
 
+
+
+new_div = html.Div(dbc.Row(id="id_portfolio_monitor"))
+
+
+
+
 app.layout = appside_layout
 
 app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout])
 
 @app.callback(Output(component_id="page_content", component_property="children"),
-              Input(component_id="id_price_chart", component_property="n_clicks_timestamp")
+              Input(component_id="id_price_chart", component_property="n_clicks_timestamp"),
+              Input(component_id="id_portfolio", component_property="n_clicks_timestamp")
               )
-def sidebar_display(price_chart: str, ):#boxplot: str, scatter: str, corr: str):
+def sidebar_display(price_chart: str, portfolio_id):#boxplot: str, scatter: str, corr: str):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -193,13 +213,43 @@ def get_date(start_date, end_date, button_click, stock_ticker):
         data = yf.download(stock_ticker, start=start_date, end=end_date)
         if isinstance(data.columns, MultiIndex):
             data.columns = data.columns.droplevel(1)
-        print(f"data: {data.head()}")
+        #print(f"data: {data.head()}")
         fig = px.line(data_frame=data, y="Close", 
                         template="plotly_dark",
                         title=f"{stock_ticker} Close price",
-                        #height=800, width=1800
+                        height=800, width=1800
                         )
         return fig
+
+@functools.lru_cache(maxsize=None)
+@app.callback(Output(component_id="page_content", component_property="children"),
+              Input(component_id="id_portfolio", component_property="n_clicks_timestamp")
+            )
+def create_portfolio_view(id_portfolio_click):
+    ctx = dash.callback_context
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if button_id != 'id_submit_stock_request':
+        return  dash.no_update
+        
+    if button_id == 'id_portfolio':
+        head_component = [dbc.Row(dcc.DatePickerRange(id="id_portfolio_date"))]
+        for stock_ticker in company_ticker:
+            data = yf.download(stock_ticker)
+            if isinstance(data.columns, MultiIndex):
+                data.columns = data.columns.droplevel(1)
+            fig = px.line(data_frame=data, y="Close", 
+                        template="plotly_dark",
+                        title=f"{stock_ticker} Close price",
+                        )
+            stock_plot = dcc.Graph(figure=fig)
+            dbc.Row(children=[])
+            dbc.Col(width=2,children=[])
+    
+
+
+
+    
     #else:
     #    PreventUpdate
         
