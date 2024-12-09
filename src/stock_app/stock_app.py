@@ -15,6 +15,13 @@ from pandas.core.indexes.multi import MultiIndex
 import functools
 
 
+card_icon = {
+    "color": "#0088BC",
+    "textAlign": "center",
+    "fontSize": "4em",
+    "margin": "auto"
+}
+
 company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
                   "SAP": "SAP", "Dell Technologies": "DELL",
                   "Brinker International": "BKJ.F", "Unipol Gruppo SpA": "UIPN.MU",
@@ -140,7 +147,7 @@ appside_layout = html.Div(
                                                                         icon="bi bi-bar-chart"
                                                                         ),
                                                         
-                                                        dtc.SideBarItem(id="id_prediction", label="Prediction", 
+                                                        dtc.SideBarItem(id="id_stock_perf", label="Performance", 
                                                                         icon="bi bi-plus-slash-minus"
                                                                         ),
                                                     ],
@@ -157,6 +164,32 @@ appside_layout = html.Div(
 
 
 
+def output_card(id: str = None, card_label: str =None,
+                style={"backgroundColor": 'yellow'},
+                icon: str ='bi bi-cash-coin', card_size: int = 4):
+    return dbc.Col(lg=card_size,
+                    children=dbc.CardGroup(
+                        children=[
+                            dbc.Card(
+                                    children=[
+                                        dcc.Loading(type='circle', children=html.H3(id=id)),
+                                        html.P(card_label)
+                                    ]
+                                ),
+                            dbc.Card(
+                                    children=[
+                                        html.Div(
+                                            className=icon,
+                                            style=card_icon
+                                        )
+                                    ],
+                                    style=style
+                            )
+                        ]
+                    )
+                )
+
+
 new_div = html.Div(dbc.Row(id="id_portfolio_monitor"))
 
 
@@ -165,7 +198,7 @@ new_div = html.Div(dbc.Row(id="id_portfolio_monitor"))
 app.layout = appside_layout
 
 app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout])
-
+@functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="page_content", component_property="children"),
               Input(component_id="id_price_chart", component_property="n_clicks_timestamp"),
               Input(component_id="id_portfolio", component_property="n_clicks_timestamp")
@@ -181,6 +214,30 @@ def sidebar_display(price_chart: str, portfolio_id):#boxplot: str, scatter: str,
         #return appside_layout
     elif button_id == "id_price_chart": ##"id_hist":
         return stockprice_layout
+    elif button_id == 'id_portfolio':
+        head_component = [dbc.Row(dcc.DatePickerRange(id="id_portfolio_date")), html.Br(),]
+        portfolio_graphs = []
+        for company, stock_ticker in company_ticker.items():
+            data = yf.download(stock_ticker)
+            if isinstance(data.columns, MultiIndex):
+                data.columns = data.columns.droplevel(1)
+            fig = px.line(data_frame=data, y="Close", 
+                        template="plotly_dark",
+                        title=f"{company} Close price",
+                        )
+            stock_plot = dcc.Graph(figure=fig)
+            # TODO: calculate stock price change from first and last dates
+                
+            portfolio_graph = dbc.Col(id=f"id_{stock_ticker}", width=6,children=[stock_plot])
+            portfolio_graphs.append(portfolio_graph)
+            portfolio_graphs.append(html.Br())
+        if portfolio_graphs:
+            head_component.append(dbc.Row(children=portfolio_graphs))
+        else:
+            print(f"No portfolio graphs created")
+        return html.Div(children=head_component)
+            
+    
     # elif button_id == "id_boxplot":
     #     return boxplot_layout
     # elif button_id == "id_scatter":
@@ -221,30 +278,39 @@ def get_date(start_date, end_date, button_click, stock_ticker):
                         )
         return fig
 
-@functools.lru_cache(maxsize=None)
-@app.callback(Output(component_id="page_content", component_property="children"),
-              Input(component_id="id_portfolio", component_property="n_clicks_timestamp")
-            )
-def create_portfolio_view(id_portfolio_click):
-    ctx = dash.callback_context
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+# @functools.lru_cache(maxsize=None)
+# @app.callback(Output(component_id="page_content", component_property="children"),
+#               Input(component_id="id_portfolio", component_property="n_clicks_timestamp")
+#             )
+# def create_portfolio_view(id_portfolio_click):
+#     ctx = dash.callback_context
+#     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
-    if button_id != 'id_submit_stock_request':
-        return  dash.no_update
+#     if button_id != 'id_submit_stock_request':
+#         return  dash.no_update
         
-    if button_id == 'id_portfolio':
-        head_component = [dbc.Row(dcc.DatePickerRange(id="id_portfolio_date"))]
-        for stock_ticker in company_ticker:
-            data = yf.download(stock_ticker)
-            if isinstance(data.columns, MultiIndex):
-                data.columns = data.columns.droplevel(1)
-            fig = px.line(data_frame=data, y="Close", 
-                        template="plotly_dark",
-                        title=f"{stock_ticker} Close price",
-                        )
-            stock_plot = dcc.Graph(figure=fig)
-            dbc.Row(children=[])
-            dbc.Col(width=2,children=[])
+#     if button_id == 'id_portfolio':
+#         head_component = [dbc.Row(dcc.DatePickerRange(id="id_portfolio_date"))]
+#         portfolio_graphs = []
+#         for stock_ticker in company_ticker:
+#             data = yf.download(stock_ticker)
+#             if isinstance(data.columns, MultiIndex):
+#                 data.columns = data.columns.droplevel(1)
+#             fig = px.line(data_frame=data, y="Close", 
+#                         template="plotly_dark",
+#                         title=f"{stock_ticker} Close price",
+#                         )
+#             stock_plot = dcc.Graph(figure=fig)
+#             # TODO: calculate stock price change from first and last dates
+                
+#             portfolio_graph = dbc.Col(id=f"id_{stock_ticker}", width=2,children=[stock_plot])
+#             portfolio_graphs.append(portfolio_graph)
+#         if portfolio_graphs:
+#             head_component.append(dbc.Row(children=portfolio_graphs))
+#         else:
+#             print(f"No portfolio graphs created")
+#         return html.Div(children=head_component)
+            
     
 
 
