@@ -27,7 +27,12 @@ company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
                   "Brinker International": "BKJ.F", "Unipol Gruppo SpA": "UIPN.MU",
                   "CaixaBank SA": "48CA.MU", "Bilfinger": "0NRG.IL",
                   "ASML Holding": "ASME.DE", "Süss MicroTec": "SMHN.DE",
-                  "Heidelberg Materials": "HEIU.MU", "Brenntag": "BNR.DE"
+                  "Heidelberg Materials": "HEIU.MU", "Brenntag": "BNR.DE",
+                  "C3.ai": "724.DE", "ING Groep": "1INGA.MI", "Wienerberger": "WIB.DE",
+                  "Rio Tinto": "RIO1.DE", "UniCredit SpA": "CRIN.DU",
+                  "Enel SpA": "ENL.DE", "ProCredit Holding": "PCZ.DE",
+                  "Super Micro Computer": "MS51.BE", "Intel": "INTC",
+                  "Iberdrola SA": "IBE1.DU"
                   }
 
 
