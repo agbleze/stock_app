@@ -32,7 +32,13 @@ company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
                   "Rio Tinto": "RIO1.DE", "UniCredit SpA": "CRIN.DU",
                   "Enel SpA": "ENL.DE", "ProCredit Holding": "PCZ.DE",
                   "Super Micro Computer": "MS51.BE", "Intel": "INTC",
-                  "Iberdrola SA": "IBE1.DU"
+                  "Iberdrola SA": "IBE1.DU", "Credit Agricole SA": "ACAP.XC",
+                  "Palantir Technologies": "PTX.DU",
+                  "Smith & Wesson Brands": "SWS.DU", "Walmart": "WMT.DE",
+                  "Microsoft": "MSF.DE", "Rheinmetall": "RHM.DE",
+                  "Coinbase Global": "1QZ.DE", "Qualcomm": "QCI.F", 
+                  "Koninklijke Philips": "PHIA.F", "L'Oreal SA": "LOR.MU",
+                  "FedEx": "FDX.DE", "Linde": "LIN.DE"
                   }
 
 
