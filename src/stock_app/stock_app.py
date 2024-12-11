@@ -38,7 +38,14 @@ company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
                   "Microsoft": "MSF.DE", "Rheinmetall": "RHM.DE",
                   "Coinbase Global": "1QZ.DE", "Qualcomm": "QCI.F", 
                   "Koninklijke Philips": "PHIA.F", "L'Oreal SA": "LOR.MU",
-                  "FedEx": "FDX.DE", "Linde": "LIN.DE"
+                  "FedEx": "FDX.DE", "Linde": "LIN.DE", "Visa": "3V6.F",
+                  "The Walt Disney": "WDPD.XC", "Deutsche Lufthansa": "LHA.DE",
+                  "Volkswagen": "VOW3.DE", "Novo Nordisk": "NOV.DE",
+                  "Schaeffler": "SHA0.DE", "TechnipFMC": "1T1.DU", "Crowdstrike Holdings": "45C.F",
+                  "Deutz": "DEZ.DE", "Colgate-Palmolive": "0P59.L", "Immersion Corp": "IMV.MU",
+                  "Vesta Wind Systems": "VWSB.DE", "Hensoldt": "HAG.DE",
+                  "Verizon Communications": "BACB.F", "flatexDEGIRO": "FTK.DE",
+                  "McDonald's": "MDO0.F", "The Coca-Cola": "CCC3.DE"
                   }
 
 
@@ -60,6 +67,7 @@ main_layout = html.Div(
             brand_href="/",
             light=True,
             brand_style={"color": "#FFFFFF", "backgroundColor": "#00624e"},
+            children=[html.Span("Click here", className="bi bi-menu-down")]
         ),
         dbc.Row(
             [
@@ -80,7 +88,7 @@ stockprice_layout = html.Div(
         #dbc.Row([
             #dbc.Col(lg=3,
                     #children=[
-                        html.H5('Stock ticker', 
+                        html.H5('Stock ticker', className="bi bi-menu-down",
                                   #style=input_style
                                   ),
                         dbc.Row(children=[dbc.Col(lg=3,
@@ -96,7 +104,7 @@ stockprice_layout = html.Div(
                                                   ),
                                           dbc.Col(
                                               dbc.Button(id="id_submit_stock_request",
-                                                         children="Get Stock price"
+                                                         children="Get Stock price",
                                                          )
                                               )
                                           ]
@@ -116,19 +124,21 @@ stockprice_layout = html.Div(
     ]
 )
 
+brand_holder = html.Span("  Stock Analysis", className="bi bi-menu-down", id="id_brand_holder")
 appside_layout = html.Div(
                             [dbc.NavbarSimple(
-                                                brand="Stock Analysis",
+                                                brand=brand_holder, #"Stock Analysis",
                                                 brand_href="/",
-                                                light=True,
-                                                brand_style={"color": "#FFFFFF", "backgroundColor": "#00624e"},
+                                                #light=True,
+                                                #brand_style={"color": "#FFFFFF", "backgroundColor": "#00624e"},
+                                                
                                             ),
                                 dbc.Row(
-                                dbc.Col([
+                                dbc.Col([       #dbc.Col(
                                                 dtc.SideBar(
                                                     [
                                                         dtc.SideBarItem(id="id_proj_desc", label="Projection Description", 
-                                                                        icon="bi bi-body-text" 
+                                                                        icon="bi bi-menu-down" 
                                                                         ),
                                                         dtc.SideBarItem(id="id_price_chart", #id="id_model_eval", 
                                                                         label="Price Chart", 
@@ -163,7 +173,7 @@ appside_layout = html.Div(
                                                                         ),
                                                     ],
                                                     #bg_color="#0ca678",
-                                                ),
+                                                ),#),
                                                 dbc.Col([], id="page_content", 
                                                         #style=page_style
                                                         )
@@ -204,11 +214,50 @@ def output_card(id: str = None, card_label: str =None,
 new_div = html.Div(dbc.Row(id="id_portfolio_monitor"))
 
 
-
+portfolio_page = html.Div([dbc.Row([dbc.Col(dcc.Dropdown(id="id_portfolio_db", 
+                                                 options=[{"label": label, "value": value}
+                                                          for label, value in company_ticker.items()
+                                                          ],#.keys(),
+                                                 #value=company_ticker.values(),
+                                                 placeholder="Portfolio"
+                                                 ),
+                                            width=3
+                                            ),
+                                    dbc.Col(dbc.Button("Watch List"), width=3)
+                                    ]
+                                   ),
+                           dbc.Row(id="id_portfolio_items")
+                           ])
 
 app.layout = appside_layout
 
 app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout])
+
+def create_portfolio_graphs(company_ticker):
+    head_component = [dbc.Row(dcc.DatePickerRange(id="id_portfolio_date")), html.Br(),]
+    portfolio_graphs = []
+    for company, stock_ticker in company_ticker.items():
+        data = yf.download(stock_ticker)
+        if isinstance(data.columns, MultiIndex):
+            data.columns = data.columns.droplevel(1)
+        fig = px.line(data_frame=data, y="Close", 
+                    template="plotly_dark",
+                    title=f"{company} Close price",
+                    )
+        stock_plot = dcc.Graph(figure=fig)
+        # TODO: calculate stock price change from first and last dates
+            
+        portfolio_graph = dbc.Col(id=f"id_{stock_ticker}", width=6,children=[stock_plot])
+        portfolio_graphs.append(portfolio_graph)
+        portfolio_graphs.append(html.Br())
+    if portfolio_graphs:
+        head_component.append(dbc.Row(children=portfolio_graphs))
+    else:
+        print(f"No portfolio graphs created")
+    return html.Div(children=head_component)
+            
+    
+    
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="page_content", component_property="children"),
               Input(component_id="id_price_chart", component_property="n_clicks_timestamp"),
@@ -226,38 +275,20 @@ def sidebar_display(price_chart: str, portfolio_id):#boxplot: str, scatter: str,
     elif button_id == "id_price_chart": ##"id_hist":
         return stockprice_layout
     elif button_id == 'id_portfolio':
-        head_component = [dbc.Row(dcc.DatePickerRange(id="id_portfolio_date")), html.Br(),]
-        portfolio_graphs = []
-        for company, stock_ticker in company_ticker.items():
-            data = yf.download(stock_ticker)
-            if isinstance(data.columns, MultiIndex):
-                data.columns = data.columns.droplevel(1)
-            fig = px.line(data_frame=data, y="Close", 
-                        template="plotly_dark",
-                        title=f"{company} Close price",
-                        )
-            stock_plot = dcc.Graph(figure=fig)
-            # TODO: calculate stock price change from first and last dates
-                
-            portfolio_graph = dbc.Col(id=f"id_{stock_ticker}", width=6,children=[stock_plot])
-            portfolio_graphs.append(portfolio_graph)
-            portfolio_graphs.append(html.Br())
-        if portfolio_graphs:
-            head_component.append(dbc.Row(children=portfolio_graphs))
-        else:
-            print(f"No portfolio graphs created")
-        return html.Div(children=head_component)
-            
-    
-    # elif button_id == "id_boxplot":
-    #     return boxplot_layout
-    # elif button_id == "id_scatter":
-    #     return scatter_layout
-    # elif button_id == "id_corr":
-    #     return multicoll_layout
+        return portfolio_page    
     else:
         print("nothing new to show")
-        #return intro_layout
+        
+        
+
+@app.callback(Output(component_id="id_portfolio_items", component_property="children"),
+              Input(component_id="id_portfolio_db", component_property="value")
+              )
+def update_portfolio_items(stock_ticker: str):
+    return html.Div(stock_ticker)
+    
+    
+    
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="stock_price_graph", component_property="figure"),
               Input(component_id="id_stock_date", component_property="start_date"),
@@ -285,7 +316,7 @@ def get_date(start_date, end_date, button_click, stock_ticker):
         fig = px.line(data_frame=data, y="Close", 
                         template="plotly_dark",
                         title=f"{stock_ticker} Close price",
-                        height=800, width=1800
+                        height=500, width=600
                         )
         return fig
 
@@ -339,6 +370,9 @@ def get_date(start_date, end_date, button_click, stock_ticker):
 
 # TODO: performance calculator similar to that on SAP wensite
 # https://www.sap.com/investors/en/stock.html
+
+
+# TODO. Add off canvas to sidebar menu to it can disapper when a buthon is clicked
 
 if __name__ == "__main__":
     app.run_server(debug=True)
