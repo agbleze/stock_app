@@ -272,7 +272,7 @@ def sidebar_display(price_chart: str, portfolio_id):#boxplot: str, scatter: str,
         #return main_layout
         #return appside_layout
         #return appside_layout
-    elif button_id == "id_price_chart": ##"id_hist":
+    elif button_id == "id_price_chart":
         return stockprice_layout
     elif button_id == 'id_portfolio':
         return portfolio_page    
