@@ -355,12 +355,6 @@ def get_date(start_date, end_date, button_click, stock_ticker):
             
     
 
-
-
-    
-    #else:
-    #    PreventUpdate
-        
 # TODO: Portfolio update
 # get all portfolio ticker, download data, create graph and show % change for each
 # when percentage change is greater than 10% then send an email notification
