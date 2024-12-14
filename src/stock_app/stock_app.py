@@ -133,53 +133,74 @@ appside_layout = html.Div(
                                                 #brand_style={"color": "#FFFFFF", "backgroundColor": "#00624e"},
                                                 
                                             ),
-                                dbc.Row(
-                                dbc.Col([       #dbc.Col(
-                                                dtc.SideBar(
-                                                    [
-                                                        dtc.SideBarItem(id="id_proj_desc", label="Projection Description", 
-                                                                        icon="bi bi-menu-down" 
-                                                                        ),
-                                                        dtc.SideBarItem(id="id_price_chart", #id="id_model_eval", 
-                                                                        label="Price Chart", 
-                                                                        icon="bi bi-bezier"
-                                                                        ),
-                                                        # dbc.Collapse(id="id_collapse_model_eval", is_open=False,
-                                                        #             children=[dtc.SideBarItem(label="Cross validation",
-                                                        #                                     id="id_crossval_btn", 
-                                                        #                                     icon="fa-solid fa-caret-up",
-                                                        #                                     n_clicks=0,
-                                                        #                                     ),
-                                                        #                     dtc.SideBarItem(label="Classification report",
-                                                        #                                     id="id_classification_btn", 
-                                                        #                                     icon="fa-brands fa-intercom",
-                                                        #                                     n_clicks=0,
-                                                        #                                 ),
-                                                        #                     dtc.SideBarItem(label="ROC Curve",
-                                                        #                                     id="id_roc_btn", 
-                                                        #                                     icon="bi bi-graph-up-arrow",
-                                                        #                                     n_clicks=0,
-                                                        #                                 )
-                                                        #                 ]
-                                                        #             ),
-                                                        
-                                                        
-                                                        dtc.SideBarItem(id="id_portfolio", label="Portfolio Monitory", 
-                                                                        icon="bi bi-bar-chart"
-                                                                        ),
-                                                        
-                                                        dtc.SideBarItem(id="id_stock_perf", label="Performance", 
-                                                                        icon="bi bi-plus-slash-minus"
-                                                                        ),
-                                                    ],
-                                                    #bg_color="#0ca678",
-                                                ),#),
+                            #  dbc.Offcanvas(id="id_sidebar_offcanvas", is_open=False,
+                            #                children=[dtc.SideBar([dtc.SideBar([dtc.SideBarItem(id="id_proj_desc", label="Projection Description", 
+                            #                                                                         icon="bi bi-menu-down" 
+                            #                                                                         ),
+                            #                                                     dtc.SideBarItem(id="id_price_chart",
+                            #                                                                     label="Price Chart", 
+                            #                                                                     icon="bi bi-bezier"
+                            #                                                                     ),
+                            #                                                     dtc.SideBarItem(id="id_portfolio", label="Portfolio Monitory", 
+                            #                                                                     icon="bi bi-bar-chart"
+                            #                                                                     ),
+                                                                                
+                            #                                                     dtc.SideBarItem(id="id_stock_perf", label="Performance", 
+                            #                                                                     icon="bi bi-plus-slash-minus"
+                            #                                                                     ),
+                            #                                                     ],
+                            #                                                 ),
+                            #                                     ],
+                            #                                     #bg_color="#0ca678",
+                            #                                 )
+                            #                         ]
+                            #                ),
+                                dbc.Row([
+                                dbc.Col([#html.Div(id="id_show_offcanvas"),
+                                         dbc.Offcanvas(id="id_sidebar_offcanvas", is_open=False,
+                                                        children=#[dtc.SideBar([
+                                                            #dtc.SideBar(
+                                                                [
+                                                                # dtc.SideBarItem(id="id_proj_desc", label="Projection Description", 
+                                                                #             icon="bi bi-menu-down" 
+                                                                #             ),
+                                                                # dtc.SideBarItem(id="id_price_chart",
+                                                                #                 label="Price Chart", 
+                                                                #                 icon="bi bi-bezier"
+                                                                #                 ),
+                                                                # dtc.SideBarItem(id="id_portfolio", label="Portfolio Monitory", 
+                                                                #                 icon="bi bi-bar-chart"
+                                                                #                 ),
+                                                                
+                                                                # dtc.SideBarItem(id="id_stock_perf", label="Performance", 
+                                                                #                 icon="bi bi-plus-slash-minus"
+                                                                #                 ),
+                                                                
+                                                                dbc.DropdownMenuItem(children=[html.H5(" Projection Description", className="bi bi-menu-down")], 
+                                                                                     id="id_proj_desc"
+                                                                                     ), html.Br(),
+                                                                dbc.DropdownMenuItem(children=[html.H5(" Price Chart", className="bi bi-bezier")], 
+                                                                                     id="id_price_chart",
+                                                                                     ), html.Br(),
+                                                                dbc.DropdownMenuItem(children=[html.H5(" Portfolio Monitory", className="bi bi-bar-chart")],
+                                                                                     id="id_portfolio",
+                                                                                     ), html.Br(),
+                                                                dbc.DropdownMenuItem(children=[html.H5(" Performance", className="bi bi-plus-slash-minus")],
+                                                                                     id="id_stock_perf",
+                                                                                     ),
+                                                                ],
+                                                                                           # ),
+                                                                                #],
+                                                                                #bg_color="#0ca678",
+                                                                            #)
+                                                                    #]
+                                                        ),
                                                 dbc.Col([], id="page_content", 
                                                         #style=page_style
                                                         )
                                                 ]
                                               )
-                                )
+                            ])
                             ]
                         )
 
@@ -213,6 +234,13 @@ def output_card(id: str = None, card_label: str =None,
 
 new_div = html.Div(dbc.Row(id="id_portfolio_monitor"))
 
+portfolio_list = dbc.ListGroup([dbc.ListGroupItem(dbc.Button(stock, value=ticker)) for stock, ticker in company_ticker.items()])
+
+portfolio_button = dbc.ButtonGroup([dbc.Button(stock) for stock in company_ticker.keys()], vertical=True)
+
+portfolio_canvas = dbc.Offcanvas(children=portfolio_list, 
+                                 is_open=True, placement="end"
+                                )
 
 portfolio_page = html.Div([dbc.Row([dbc.Col(dcc.Dropdown(id="id_portfolio_db", 
                                                  options=[{"label": label, "value": value}
@@ -261,9 +289,10 @@ def create_portfolio_graphs(company_ticker):
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="page_content", component_property="children"),
               Input(component_id="id_price_chart", component_property="n_clicks_timestamp"),
-              Input(component_id="id_portfolio", component_property="n_clicks_timestamp")
+              Input(component_id="id_portfolio", component_property="n_clicks_timestamp"),
+              Input(component_id="id_stock_perf", component_property="n_clicks_timestamp")
               )
-def sidebar_display(price_chart: str, portfolio_id):#boxplot: str, scatter: str, corr: str):
+def sidebar_display(price_chart: str, portfolio_id, stock_portfolio):#boxplot: str, scatter: str, corr: str):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -276,10 +305,23 @@ def sidebar_display(price_chart: str, portfolio_id):#boxplot: str, scatter: str,
         return stockprice_layout
     elif button_id == 'id_portfolio':
         return portfolio_page    
+    elif button_id == "id_stock_perf":
+        return portfolio_canvas
     else:
         print("nothing new to show")
         
         
+@app.callback(Output(component_id="id_sidebar_offcanvas",component_property="is_open"),
+              Input(component_id="id_brand_holder", component_property="n_clicks"),
+              State(component_id="id_sidebar_offcanvas", component_property="is_open")
+              )
+def show_sidebar_offcanvas(brand_holder_click, is_open):
+    if brand_holder_click:
+        return not is_open
+    return is_open
+    
+
+
 
 @app.callback(Output(component_id="id_portfolio_items", component_property="children"),
               Input(component_id="id_portfolio_db", component_property="value")
