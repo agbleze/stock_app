@@ -45,7 +45,30 @@ company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
                   "Deutz": "DEZ.DE", "Colgate-Palmolive": "0P59.L", "Immersion Corp": "IMV.MU",
                   "Vesta Wind Systems": "VWSB.DE", "Hensoldt": "HAG.DE",
                   "Verizon Communications": "BACB.F", "flatexDEGIRO": "FTK.DE",
-                  "McDonald's": "MDO0.F", "The Coca-Cola": "CCC3.DE"
+                  "McDonald's": "MDO0.F", "The Coca-Cola": "CCC3.DE", "Nvidia": "NVDA.DE",
+                  "Applied Materials": "AP2.MU", "PUMA": "PUM.DE",
+                  "Leonardo SpA": "FMNB.MU", "NN Group": "2NN.DE", "BAE Systems": "BSP.DE",
+                  "Bitcoin Group": "ADE.MU", "BNP Paribas SA": "BNPH.F", "Allianz": "ALV.DE",
+                  "Broadcom": "1YD.DU", "Uber Technologies": "UBER", "Thales SA": "THAL.VI",
+                  "International Business Machines": "IBM.DE", "Western Digital": "WDC.MU",
+                  "Veolia Environment SA": "VVD.MU", "Heineken": "HEIA.VI", "AXA SA": "AXA.DU",
+                  "adesso": "ADN1.DE", "Advanced Micro Devices": "AMD.F", 
+                  "Vienna Insurance Group": "WSV2.DU", "Grupo Catalana Occidente SA": "OCZA.MU",
+                  "Siemens": "SIE.DE", "FLSmidth": "F6O1.DU", "Bank of America": "NCB.F",
+                  "Banco Bilbao Vizcaya Argentaria SA": "BBVA.MU", "Alphabet": "GOOG",
+                  "Unilever": "UNA.AS", "Airbus": "AIR.PA", "PDD Holdings": "PDD",
+                  "Mondelez International": "KTF.DE", "Freeport-McMoRan": "FPMB.DE",
+                  "voestalpine": "VASS.MU", "LVMH Moet HennessyLouis Vuitton": "MOH.BE",
+                  "Bechtle": "BC8.DE", "CENIT": "CSH.DE", "Rolls-Royce Holdings": "RRU.DE",
+                  "OMV": "OMV.VI", "Merck": "MRK", "Intesa Sanpaolo SpA": "ISPM.XD",
+                  "Commerzbank": "CBK.DE", "Microstrategy": "MSTR", "RWE": "RWE.DE",
+                  "Micro Technology": "MU", "Jackson Financial": "8WF.MU", "Porsche": "PAH3.DE",
+                  "Infineon Technologies": "IFX.DE", "Dropbox": "1Q5.F", 
+                  "Riot Platforms": "RIOT", "Tenet Healthcare": "THC1.MU", "Applovin Corp": "APP",
+                  "Palo Alto Networks": "5AP.MU", "C3.ai": "724.DE", "Amazon": "AMZN",
+                  "Tesla": "TL0.DE", "Apple": "APC.DE", "ON Semiconductor": "XS4.F",
+                  "Grand City Properties SA": "GYC.DU", "GFT Technologies": "GFT.MU",
+                  "Mapfre SA": "MAPE.XC"
                   }
 
 
@@ -234,7 +257,7 @@ def output_card(id: str = None, card_label: str =None,
 
 new_div = html.Div(dbc.Row(id="id_portfolio_monitor"))
 
-portfolio_list = dbc.ListGroup([dbc.ListGroupItem(dbc.Button(stock, value=ticker)) for stock, ticker in company_ticker.items()])
+portfolio_list = dbc.ListGroup([dbc.ListGroupItem(stock) for stock, ticker in company_ticker.items()])
 
 portfolio_button = dbc.ButtonGroup([dbc.Button(stock) for stock in company_ticker.keys()], vertical=True)
 
@@ -255,7 +278,8 @@ portfolio_page = html.Div([dbc.Row([dbc.Col(dcc.Dropdown(id="id_portfolio_db",
                                     ]
                                    ),
                            dbc.Row(id="id_portfolio_items")
-                           ])
+                           ]
+                        )
 
 app.layout = appside_layout
 
