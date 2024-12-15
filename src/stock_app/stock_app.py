@@ -13,7 +13,8 @@ from style import page_style
 import yfinance as yf
 from pandas.core.indexes.multi import MultiIndex
 import functools
-
+from prophet.plot import get_seasonality_plotly_props
+from prophet import Prophet
 
 card_icon = {
     "color": "#0088BC",
@@ -71,9 +72,6 @@ company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
                   "Mapfre SA": "MAPE.XC"
                   }
 
-
-
-
 app = dash.Dash(__name__, external_stylesheets=[
                                                 dbc.themes.SOLAR,
                                                 dbc.icons.BOOTSTRAP,
@@ -81,7 +79,6 @@ app = dash.Dash(__name__, external_stylesheets=[
                                             ],
                 suppress_callback_exceptions=True,
                 )
-
 
 main_layout = html.Div(
     [
@@ -136,12 +133,22 @@ stockprice_layout = html.Div(
                         
                             #]
                     #),
-            dbc.Row(dcc.Loading(type='circle',
+            dbc.Row([dcc.Loading(type='circle',
                                 children=[dbc.Col(#lg=9,
                                                   children=[dcc.Graph(id='stock_price_graph')]
                                                     )
                                             ]
                                 )
+                     ]
+                    ),
+            dbc.Row([dcc.Loading(type="circle",
+                                 children=[dbc.Col(children=[
+                                                            dcc.Graph(id="seasonality_graph")
+                                                            ]
+                                                   )
+                                           ]
+                                 )
+                     ]
                     )
         #])
     ]
@@ -308,7 +315,24 @@ def create_portfolio_graphs(company_ticker):
         print(f"No portfolio graphs created")
     return html.Div(children=head_component)
             
-    
+
+def plot_seasonality(data):
+    data["Date"] = data.index.values
+    data.index = pd.to_datetime(data.index)
+    data.set_index(data["Date"], inplace=True)
+    data = (data.rename(columns={"Date": "ds", "Close": "y"})
+                [["ds", "y", "Volume"]]
+            )
+    model = Prophet()
+    model.fit(df=data)
+    yr_seasonality = get_seasonality_plotly_props(model, name="yearly")
+    scatter = yr_seasonality["traces"][0]
+    yval = scatter.y
+    xval = scatter.x
+    fig = px.line(x=xval, y=yval, template="plotly_dark",
+                  title="Seasonality plot")
+    return fig
+   
     
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="page_content", component_property="children"),
@@ -357,6 +381,7 @@ def update_portfolio_items(stock_ticker: str):
     
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="stock_price_graph", component_property="figure"),
+              Output(component_id="seasonality_graph", component_property="figure"),
               Input(component_id="id_stock_date", component_property="start_date"),
               Input(component_id="id_stock_date", component_property="end_date"),
               Input(component_id="id_submit_stock_request", component_property="n_clicks"),
@@ -382,9 +407,10 @@ def get_date(start_date, end_date, button_click, stock_ticker):
         fig = px.line(data_frame=data, y="Close", 
                         template="plotly_dark",
                         title=f"{stock_ticker} Close price",
-                        height=500, width=600
+                        height=500, #width=600
                         )
-        return fig
+        seasonality_fig = plot_seasonality(data=data)
+        return fig, seasonality_fig
 
 # @functools.lru_cache(maxsize=None)
 # @app.callback(Output(component_id="page_content", component_property="children"),
