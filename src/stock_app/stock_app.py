@@ -15,6 +15,7 @@ from pandas.core.indexes.multi import MultiIndex
 import functools
 from prophet.plot import get_seasonality_plotly_props
 from prophet import Prophet
+import plotly.graph_objects as go
 
 card_icon = {
     "color": "#0088BC",
@@ -141,6 +142,7 @@ stockprice_layout = html.Div(
                                 )
                      ]
                     ),
+            html.Br(),
             dbc.Row([dcc.Loading(type="circle",
                                  children=[dbc.Col(children=[
                                                             dcc.Graph(id="seasonality_graph")
@@ -149,7 +151,17 @@ stockprice_layout = html.Div(
                                            ]
                                  )
                      ]
-                    )
+                    ),
+            html.Br(),
+            dbc.Row([dcc.Loading(type="circle",
+                                 children=[dbc.Col(children=[
+                                                            dcc.Graph(id="pred_graph")
+                                                            ]
+                                                   )
+                                           ]
+                                 )
+                     ]
+                    ),
         #])
     ]
 )
@@ -333,7 +345,53 @@ def plot_seasonality(data):
                   title="Seasonality plot")
     return fig
    
+
+def plot_model_fit(data, forecast_period=120):
+    data["Date"] = data.index.values
+    data.index = pd.to_datetime(data.index)
+    data.set_index(data["Date"], inplace=True)
+    data = (data.rename(columns={"Date": "ds", "Close": "y"})
+                [["ds", "y", "Volume"]]
+            )
+    model = Prophet()
+    model.fit(df=data)
+    future = model.make_future_dataframe(periods=forecast_period)
+
+    forecast = model.predict(future)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=forecast["ds"], 
+                            y=forecast["yhat"],
+                            mode="lines", name="stock prediction"
+                            )
+                )
+    fig.add_trace(go.Scatter(x=data["ds"], 
+                            y=data["y"],
+                            mode="lines", name="stock price"
+                            )
+                )
+    fig.add_trace(go.Scatter(x=forecast["ds"],
+                            y=forecast["yhat_upper"],
+                            mode="lines", name="upper prediction",
+                            fill="tonexty", fillcolor="rgba(68, 68, 68, 0.3)"
+                            )
+                )
+    fig.add_trace(go.Scatter(x=forecast["ds"],
+                            y=forecast["yhat_lower"],
+                            mode="lines", name="lower prediction",
+                            fill="tonexty", fillcolor="rgba(150, 150, 50, 0.3)"
+                            ))
+    fig.update_layout(legend=dict(yanchor="bottom",
+                                    y=1.02,
+                                    xanchor="right",
+                                    x=1,
+                                    orientation="h"
+                                ),
+                      template="plotly_dark"
+                      )
+    return fig
     
+    
+       
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="page_content", component_property="children"),
               Input(component_id="id_price_chart", component_property="n_clicks_timestamp"),
@@ -382,6 +440,7 @@ def update_portfolio_items(stock_ticker: str):
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="stock_price_graph", component_property="figure"),
               Output(component_id="seasonality_graph", component_property="figure"),
+              Output(component_id="pred_graph", component_property="figure"),
               Input(component_id="id_stock_date", component_property="start_date"),
               Input(component_id="id_stock_date", component_property="end_date"),
               Input(component_id="id_submit_stock_request", component_property="n_clicks"),
@@ -410,8 +469,10 @@ def get_date(start_date, end_date, button_click, stock_ticker):
                         height=500, #width=600
                         )
         seasonality_fig = plot_seasonality(data=data)
-        return fig, seasonality_fig
+        pred_fig = plot_model_fit(data=data)
+        return fig, seasonality_fig, pred_fig
 
+#TODO. Add various decomposition components like trend, weekly, yearly, yhat etc
 # @functools.lru_cache(maxsize=None)
 # @app.callback(Output(component_id="page_content", component_property="children"),
 #               Input(component_id="id_portfolio", component_property="n_clicks_timestamp")
