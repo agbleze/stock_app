@@ -112,7 +112,7 @@ stockprice_layout = html.Div(
                         html.H5('Stock ticker', className="bi bi-menu-down",
                                   #style=input_style
                                   ),
-                        dbc.Row(children=[dbc.Col(lg=3,
+                        dbc.Row(children=[dbc.Col(#lg=3,
                                                   children=[dbc.Input(id="id_stock_ticker",
                                                                       placeholder="Input stock ticker as shown in yahoo finance",
                                                                       type="text"
@@ -127,7 +127,23 @@ stockprice_layout = html.Div(
                                               dbc.Button(id="id_submit_stock_request",
                                                          children="Get Stock price",
                                                          )
-                                              )
+                                              ),
+                                          dbc.Col(dbc.Collapse(dbc.Col(dbc.Button(id="id_train_model",
+                                                                          children="Train model"
+                                                                          )
+                                                               ),
+                                                       id="id_collapse_train_model",
+                                                       is_open=False
+                                                       )
+                                                  ),
+                                          dbc.Col(dbc.Collapse(dbc.Col(dbc.Button(id="id_model_prediction",
+                                                                          children="Predict"
+                                                                          )
+                                                               ),
+                                                       is_open=False,
+                                                       id="id_collapse_model_prediction"
+                                                       )
+                                                  )
                                           ]
                                 ),
                         
@@ -328,7 +344,7 @@ def create_portfolio_graphs(company_ticker):
     return html.Div(children=head_component)
             
 
-def plot_seasonality(data):
+def plot_forecast_component(data):
     data["Date"] = data.index.values
     data.index = pd.to_datetime(data.index)
     data.set_index(data["Date"], inplace=True)
@@ -342,7 +358,7 @@ def plot_seasonality(data):
     yval = scatter.y
     xval = scatter.x
     fig = px.line(x=xval, y=yval, template="plotly_dark",
-                  title="Seasonality plot")
+                  title="Forecast components")
     return fig
    
 
@@ -468,11 +484,36 @@ def get_date(start_date, end_date, button_click, stock_ticker):
                         title=f"{stock_ticker} Close price",
                         height=500, #width=600
                         )
-        seasonality_fig = plot_seasonality(data=data)
+        seasonality_fig = plot_forecast_component(data=data)
         pred_fig = plot_model_fit(data=data)
         return fig, seasonality_fig, pred_fig
 
-#TODO. Add various decomposition components like trend, weekly, yearly, yhat etc
+@app.callback(Output(component_id="id_collapse_train_model", component_property="is_open"),
+              Output(component_id="id_collapse_model_prediction", component_property="is_open"),
+              Input(component_id="id_stock_ticker", component_property="value")
+              )
+def show_model_button(stock_ticker):
+    if not stock_ticker:
+        return dash.no_update, dash.no_update
+    if stock_ticker and stock_ticker in ["META"]:
+        return True, True
+    if stock_ticker and not stock_ticker in ["META"]:
+        return True, dash.no_update
+    
+    
+#TODO: Add modelling capabilities
+# a train model button will be available that when clicked, will check if 
+# a model has already been trained for the stock then use that for prediction.
+# there should be option to override this action and force train the model
+
+# When train model is clicked, open a dialog that allow use to set training options
+# When training is completed, the trained model is saved with the stock ticker name
+# When the predict button is clicked, dialog to set set prediction options
+# will open and user makes their settings and request prediction
+# When prediction is requested, the ticker is used to determine which model to 
+# load nad use for prediction
+
+
 # @functools.lru_cache(maxsize=None)
 # @app.callback(Output(component_id="page_content", component_property="children"),
 #               Input(component_id="id_portfolio", component_property="n_clicks_timestamp")
