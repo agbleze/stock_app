@@ -178,6 +178,7 @@ stockprice_layout = html.Div(
                                  )
                      ]
                     ),
+            dbc.Row(id="id_config_dialog")
         #])
     ]
 )
@@ -316,6 +317,28 @@ portfolio_page = html.Div([dbc.Row([dbc.Col(dcc.Dropdown(id="id_portfolio_db",
                            ]
                         )
 
+train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Config model training")),
+                                          dbc.ModalBody([dbc.Row([dbc.Col([html.P("Training data size"),
+                                                                          dbc.Input(type="number", min=0, max=1, step=0.1)
+                                                                          ]
+                                                                         ),
+                                                                 dbc.Col([html.P("Validation data size"),
+                                                                          dbc.Input(type="number", min=0, max=1, step=0.1)
+                                                                          ]
+                                                                         ),
+                                                                 dbc.Col([html.P("Testing data size"),
+                                                                          dbc.Input(type="number", min=0, max=1, step=0.1)
+                                                                          ]
+                                                                         )
+                                                                ]
+                                                                 ),
+                                                         ]
+                                                        ),
+    
+                                         ], is_open=True,
+                                        )
+                               ]
+                               )
 app.layout = appside_layout
 
 app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout])
@@ -500,7 +523,19 @@ def show_model_button(stock_ticker):
     if stock_ticker and not stock_ticker in ["META"]:
         return True, dash.no_update
     
-    
+@app.callback(Output(component_id="id_config_dialog", component_property="children"),
+              Input(component_id="id_train_model", component_property="n_clicks")
+              )
+def show_model_config_dialog(model_config_button_click):
+    ctx = dash.callback_context
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if button_id == "id_train_model":
+    #if model_config_button_click:
+        return train_config_layout
+    else:
+        dash.no_update
+        
+         
 #TODO: Add modelling capabilities
 # a train model button will be available that when clicked, will check if 
 # a model has already been trained for the stock then use that for prediction.
