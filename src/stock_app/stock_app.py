@@ -363,6 +363,11 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                                                   dbc.Col([dbc.Label("Batch size"),
                                                                            dbc.Input(type="number")
                                                                            ]
+                                                                          ),
+                                                                  dbc.Col([#dbc.Label("Train Model"),
+                                                                           html.Br(),
+                                                                           dbc.Button("Start Model Training", id="id_start_model_train")
+                                                                           ]
                                                                           )
                                                                   ]
                                                                  )
@@ -582,6 +587,7 @@ def show_model_config_dialog(model_config_button_click):
 # When prediction is requested, the ticker is used to determine which model to 
 # load nad use for prediction
 
+# TODO: add validation of model config input
 
 # @functools.lru_cache(maxsize=None)
 # @app.callback(Output(component_id="page_content", component_property="children"),
