@@ -319,49 +319,49 @@ portfolio_page = html.Div([dbc.Row([dbc.Col(dcc.Dropdown(id="id_portfolio_db",
 
 train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Config model training")),
                                           dbc.ModalBody([dbc.Row([dbc.Col([dbc.Label("Training data size"),
-                                                                          dbc.Input(type="number", min=0, max=1, step=0.1)
+                                                                          dbc.Input(type="number", min=0, max=1, step=0.1, id="id_train_size")
                                                                           ]
                                                                          ),
                                                                  dbc.Col([dbc.Label("Validation data size"),
-                                                                          dbc.Input(type="number", min=0, max=1, step=0.1)
+                                                                          dbc.Input(type="number", min=0, max=1, step=0.1, id="id_val_size")
                                                                           ]
                                                                          ),
                                                                  dbc.Col([dbc.Label("Testing data size"),
-                                                                          dbc.Input(type="number", min=0, max=1, step=0.1)
+                                                                          dbc.Input(type="number", min=0, max=1, step=0.1, id="id_test_size")
                                                                           ]
                                                                          )
                                                                 ]
                                                                  ),
                                                          dbc.Row([dbc.Col([dbc.Label("Window - size of training timesteps"),
-                                                                           dbc.Input(type="number", min=5)
+                                                                           dbc.Input(type="number", min=5, id="id_window_size")
                                                                            ]
                                                                           ),
                                                                   dbc.Col([dbc.Label("Horizon - size of prediction timesteps"),
-                                                                           dbc.Input(type="number", min=5)
+                                                                           dbc.Input(type="number", min=5, id="id_horizon_size")
                                                                            ]),
                                                                   ]
                                                                 ),
                                                          dbc.Row([dbc.Col([dbc.Label("Buffer size"),
-                                                                          dbc.Input(type="number")
+                                                                          dbc.Input(type="number", id="id_buffer_size")
                                                                           ]
                                                                           ),
                                                                   dbc.Col([dbc.Label("Number of Epochs"),
-                                                                           dbc.Input(type="number")
+                                                                           dbc.Input(type="number", id="id_num_epochs")
                                                                            ]
                                                                           ),
                                                                   dbc.Col([dbc.Label("Steps per Epoch"),
-                                                                           dbc.Input(type="number")
+                                                                           dbc.Input(type="number", id="id_steps_per_epoch")
                                                                            ]
                                                                           )
                                                                 ]
                                                                   ),
                                                          dbc.Row([dbc.Col([dbc.Label("Validation steps"),
-                                                                           dbc.Input(type="number")
+                                                                           dbc.Input(type="number", id="id_val_steps"),
                                                                            ]
                                                                           ),
                                                                   
                                                                   dbc.Col([dbc.Label("Batch size"),
-                                                                           dbc.Input(type="number")
+                                                                           dbc.Input(type="number", id="id_batch_size"),
                                                                            ]
                                                                           ),
                                                                   dbc.Col([#dbc.Label("Train Model"),
