@@ -32,6 +32,24 @@ from sklearn.metrics import mean_absolute_percentage_error
 import matplotlib.pyplot as plt
 
 
+class Transformer(object):
+    def __init__(self, data):
+        self.data = data
+        
+    def get_minmax_scaler(self, data=None):
+        if not data:
+            data = self.data
+        self.minmax_scaler = preprocessing.MinMaxScaler()
+        self.minmax_scaler.fit(data)
+        return self.minmax_scaler
+    
+    def transform(self, data, scaler=None):
+        if not scaler:
+            scaler = self.get_minmax_scaler(data=data)
+        transformed_data = scaler.transform(data)
+        return transformed_data
+  
+
 class Model_Trainer(object):
     def __init__(self, steps_per_epoch, epochs, 
                  predictors: pd.DataFrame,
@@ -164,8 +182,15 @@ class Model_Trainer(object):
         self.loaded_data_slices = loaded_data_slices.cache().shuffle(buffer_size).batch(batch_size).repeat()
         return self.loaded_data_slices
 
+    def load_model(self, model_path=None):
+        if not model_path:
+            model_path = self.save_model_path
+        self.loaded_model = tf.keras.models.load_model(model_path)
+        return self.loaded_model
+        
     
-    def __call__(self, *args, **kwds):
+    
+    def run_model_training(self, *args, **kwds):
         x_train, y_train = self.horizon_style_data_splitter(predictors=self.predictors, 
                                                             target=self.target,
                                                             start=0, end=self.train_endpoint,
@@ -202,5 +227,5 @@ class Model_Trainer(object):
                                         validation_steps=self.validation_steps, monitor=self.monitor,
                                         mode=self.mode
                                         )
-        return train_history
+        return train_history, self.load_model()
         
