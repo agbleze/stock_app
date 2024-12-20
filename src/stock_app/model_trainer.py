@@ -1,3 +1,5 @@
+
+#%%
 from dash import html, Input, Output, State, dcc, callback_context, callback, Dash
 from datetime import date
 import dash_bootstrap_components as dbc
@@ -37,7 +39,7 @@ class Transformer(object):
         self.data = data
         
     def get_minmax_scaler(self, data=None):
-        if not data:
+        if data is None:
             data = self.data
         self.minmax_scaler = preprocessing.MinMaxScaler()
         self.minmax_scaler.fit(data)
@@ -50,6 +52,7 @@ class Transformer(object):
         return transformed_data
   
 
+#%%
 class Model_Trainer(object):
     def __init__(self, steps_per_epoch, epochs, 
                  predictors: pd.DataFrame,
@@ -58,7 +61,7 @@ class Model_Trainer(object):
                 validation_steps, monitor='val_loss',
                 mode="min", save_model_path='model_store/lstm_multivariate.h5',
                 batch_size: int = 64, buffer_size: int = 100,
-                model_type="lstm", optimizer="adam"
+                model_type="lstm", optimizer="adam", loss="mse"
                 ):
         self.steps_per_epoch = steps_per_epoch
         self.epochs = epochs
@@ -76,11 +79,12 @@ class Model_Trainer(object):
         self.buffer_size = buffer_size
         self.model_type = model_type
         self.optimizer = optimizer
+        self.loss = loss
         
         tf.random.set_seed(2023)
         np.random.seed(2023)
         
-    def horizon_style_data_splitter(predictors: pd.DataFrame,
+    def horizon_style_data_splitter(self, predictors: pd.DataFrame,
                                     target: pd.DataFrame, start: int,
                                     end: int, window: int, horizon: int
                                     ):
@@ -97,7 +101,7 @@ class Model_Trainer(object):
             y.append(target.iloc[indicey])
         return np.array(X), np.array(y)
             
-    def timeseries_evaluation_metrics(y_true, y_pred):
+    def timeseries_evaluation_metrics(self, y_true, y_pred):
         mse = metrics.mean_squared_error(y_true, y_pred)
         mae = metrics.mean_absolute_error(y_true, y_pred)
         rmse = np.sqrt(metrics.mean_squared_error(y_true, y_pred))
@@ -113,7 +117,17 @@ class Model_Trainer(object):
                 "root_mean_squared_error": rmse, "Meaan Absolute Percentage Error": mape,
                 "R2": r2}
 
-    def plot_loss_history(history):
+    def plot_loss_history(self, history=None):
+        if history is None:
+            if hasattr(self, "train_history"):
+                history = self.train_history
+            else:
+                raise ValueError("""history parameter is None and the model has not 
+                                    yet been trained. Either provide history parameter or
+                                    call the run_model_training to train model before 
+                                    plotting loss history
+                                """
+                                )
         plt.plot(history.history['loss'])
         plt.plot(history.history['val_loss'])
         plt.title('Model loss')
@@ -123,7 +137,9 @@ class Model_Trainer(object):
         plt.rcParams['figure.figsize'] = [16, 9]
         return plt.show()
     
-    def create_model(self, input_shape, epochs, optimizer="adam", loss='mse', model_type="lstm"):
+    def create_model(self, input_shape, optimizer="adam", 
+                     loss='mse', model_type="lstm"
+                     ):
         if model_type == "lstm":
             self.model = tf.keras.models.Sequential()
             self.model.add(tf.keras.layers.LSTM(units=556, 
@@ -193,7 +209,7 @@ class Model_Trainer(object):
     def run_model_training(self, *args, **kwds):
         x_train, y_train = self.horizon_style_data_splitter(predictors=self.predictors, 
                                                             target=self.target,
-                                                            start=0, end=self.train_endpoint,
+                                                            start=self.start, end=self.train_endpoint,
                                                             window=self.window,
                                                             horizon=self.horizon
                                                             )
@@ -211,21 +227,73 @@ class Model_Trainer(object):
                                   buffer_size=self.buffer_size
                                   )
         if self.model_type == "lstm":
-            input_shape = self.predictors.shape[-2:],
+            input_shape = x_train.shape[-2:]
         elif self.model_type == "cnn":
-            input_shape = (self.predictors.shape[1], 
-                           self.predictors.shape[2]
+            input_shape = (x_train.shape[1], 
+                           x_train.shape[2]
                            )
-        model = self.create_model(input_shape=input_shape, epochs=self.epochs, 
+        model = self.create_model(input_shape=input_shape,
                                 optimizer=self.optimizer,
-                                loss=self.predictors, model_type=self.model_type
+                                loss=self.loss, 
+                                model_type=self.model_type
                                 )
         
-        train_history = self.fit_model(model=model, train_data=train_data, val_data=val_data,
+        self.train_history = self.fit_model(model=model, train_data=train_data, val_data=val_data,
                                         epochs=self.epochs, save_model_path=self.save_model_path,
                                         steps_per_epoch=self.steps_per_epoch,
                                         validation_steps=self.validation_steps, monitor=self.monitor,
                                         mode=self.mode
                                         )
-        return train_history, self.load_model()
+        return self.train_history, self.load_model()
         
+# %%
+data = yf.download("META")
+
+if isinstance(data.columns, MultiIndex):
+    data.columns = data.columns.droplevel(1)
+# %%
+test_df = data.tail(90)
+train_df = data.drop(test_df.index)
+
+
+
+# %%
+trn = Transformer(data=train_df[["Volume"]])
+# %%
+train_df[["Volume"]] = trn.transform(train_df[["Volume"]])
+# %%
+test_df[["Volume"]] = trn.minmax_scaler.transform(test_df[["Volume"]])
+# %%
+predictors = train_df[train_df.columns[1:]]
+
+target = train_df[['Close']]
+mod_cls = Model_Trainer(steps_per_epoch=2, epochs=3, 
+                        predictors=predictors,
+                        target=target, start=0,
+                        train_endpoint=int(len(train_df) * 0.75),
+                        window=180, horizon=90, validation_steps=5,
+                        save_model_path="model_store/META_lstm.h5"
+                        )
+# %%
+train_hist, model = mod_cls.run_model_training()
+
+#%%
+mod_cls.plot_loss_history()
+
+
+# %%
+#model.predict(predictors)
+
+data_val = train_df[train_df.columns[1:]].tail(180)
+val_rescaled = np.array(data_val).reshape(1, data_val.shape[0], data_val.shape[1])
+predicted_results = model.predict(val_rescaled)
+
+#%%
+
+test_df["Close"].to_list()
+
+# %%
+mod_cls.timeseries_evaluation_metrics(y_true=test_df["Close"].to_list(),
+                                      y_pred=predicted_results.tolist()[0]
+                                      )
+# %%
