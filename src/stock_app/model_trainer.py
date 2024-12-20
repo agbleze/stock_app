@@ -245,55 +245,57 @@ class Model_Trainer(object):
                                         mode=self.mode
                                         )
         return self.train_history, self.load_model()
-        
-# %%
-data = yf.download("META")
-
-if isinstance(data.columns, MultiIndex):
-    data.columns = data.columns.droplevel(1)
-# %%
-test_df = data.tail(90)
-train_df = data.drop(test_df.index)
 
 
+if __name__ == "__main__":
+    # %%
+    data = yf.download("META")
 
-# %%
-trn = Transformer(data=train_df[["Volume"]])
-# %%
-train_df[["Volume"]] = trn.transform(train_df[["Volume"]])
-# %%
-test_df[["Volume"]] = trn.minmax_scaler.transform(test_df[["Volume"]])
-# %%
-predictors = train_df[train_df.columns[1:]]
-
-target = train_df[['Close']]
-mod_cls = Model_Trainer(steps_per_epoch=2, epochs=3, 
-                        predictors=predictors,
-                        target=target, start=0,
-                        train_endpoint=int(len(train_df) * 0.75),
-                        window=180, horizon=90, validation_steps=5,
-                        save_model_path="model_store/META_lstm.h5"
-                        )
-# %%
-train_hist, model = mod_cls.run_model_training()
-
-#%%
-mod_cls.plot_loss_history()
+    if isinstance(data.columns, MultiIndex):
+        data.columns = data.columns.droplevel(1)
+    # %%
+    test_df = data.tail(90)
+    train_df = data.drop(test_df.index)
 
 
-# %%
-#model.predict(predictors)
 
-data_val = train_df[train_df.columns[1:]].tail(180)
-val_rescaled = np.array(data_val).reshape(1, data_val.shape[0], data_val.shape[1])
-predicted_results = model.predict(val_rescaled)
+    # %%
+    trn = Transformer(data=train_df[["Volume"]])
+    # %%
+    train_df[["Volume"]] = trn.transform(train_df[["Volume"]])
+    # %%
+    test_df[["Volume"]] = trn.minmax_scaler.transform(test_df[["Volume"]])
+    # %%
+    predictors = train_df[train_df.columns[1:]]
 
-#%%
+    target = train_df[['Close']]
+    mod_cls = Model_Trainer(steps_per_epoch=2, epochs=3, 
+                            predictors=predictors,
+                            target=target, start=0,
+                            train_endpoint=int(len(train_df) * 0.75),
+                            window=180, horizon=90, validation_steps=5,
+                            save_model_path="model_store/META_lstm.h5"
+                            )
+    # %%
+    train_hist, model = mod_cls.run_model_training()
 
-test_df["Close"].to_list()
+    #%%
+    mod_cls.plot_loss_history()
 
-# %%
-mod_cls.timeseries_evaluation_metrics(y_true=test_df["Close"].to_list(),
-                                      y_pred=predicted_results.tolist()[0]
-                                      )
-# %%
+
+    # %%
+    #model.predict(predictors)
+
+    data_val = train_df[train_df.columns[1:]].tail(180)
+    val_rescaled = np.array(data_val).reshape(1, data_val.shape[0], data_val.shape[1])
+    predicted_results = model.predict(val_rescaled)
+
+    #%%
+
+    test_df["Close"].to_list()
+
+    # %%
+    mod_cls.timeseries_evaluation_metrics(y_true=test_df["Close"].to_list(),
+                                        y_pred=predicted_results.tolist()[0]
+                                        )
+    # %%

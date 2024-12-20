@@ -30,6 +30,7 @@ from keras.layers import LSTM, Dense, Bidirectional, MaxPool1D, Dropout
 from statsmodels.tsa.seasonal import seasonal_decompose
 from sklearn.metrics import mean_absolute_percentage_error
 import matplotlib.pyplot as plt
+from model_trainer import Model_Trainer
 
 card_icon = {
     "color": "#0088BC",
