@@ -19,17 +19,6 @@ import plotly.graph_objects as go
 from prophet.serialize import model_to_json, model_from_json
 import json
 import numpy as np
-import tensorflow as tf
-from sklearn import preprocessing
-from sklearn import metrics
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import (Bidirectional, LSTM, Flatten,
-                                     TimeDistributed, RepeatVector,
-                                     Conv1D, MaxPool1D)
-from keras.layers import LSTM, Dense, Bidirectional, MaxPool1D, Dropout
-from statsmodels.tsa.seasonal import seasonal_decompose
-from sklearn.metrics import mean_absolute_percentage_error
-import matplotlib.pyplot as plt
 from model_trainer import Model_Trainer, Transformer
 
 card_icon = {
@@ -87,6 +76,8 @@ company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
                   "Grand City Properties SA": "GYC.DU", "GFT Technologies": "GFT.MU",
                   "Mapfre SA": "MAPE.XC"
                   }
+
+predcol = ['High', 'Low', 'Close', 'Adj Close', 'Volume']
 
 def download_stock_price(stock_ticker, start_date=None, end_date=None, **kwargs):
     data = yf.download(stock_ticker, start=start_date, end=end_date, **kwargs)
@@ -214,7 +205,7 @@ appside_layout = html.Div(
                                                 #brand_style={"color": "#FFFFFF", "backgroundColor": "#00624e"},
                                                 
                                             ),
-                             dcc.Store(id="id_trained_model_path", storage_type="local"),
+                             dcc.Loading(dcc.Store(id="id_trained_model_path", storage_type="local")),
                             #  dbc.Offcanvas(id="id_sidebar_offcanvas", is_open=False,
                             #                children=[dtc.SideBar([dtc.SideBar([dtc.SideBarItem(id="id_proj_desc", label="Projection Description", 
                             #                                                                         icon="bi bi-menu-down" 
@@ -356,20 +347,28 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                                                 ]
                                                                  ),
                                                          dbc.Row([dbc.Col([dbc.Label("Window - size of training timesteps"),
-                                                                           dbc.Input(type="number", min=5, id="id_window_size")
+                                                                           dbc.Input(type="number", min=5, id="id_window_size",
+                                                                                     value=180
+                                                                                     )
                                                                            ]
                                                                           ),
                                                                   dbc.Col([dbc.Label("Horizon - size of prediction timesteps"),
-                                                                           dbc.Input(type="number", min=5, id="id_horizon_size")
+                                                                           dbc.Input(type="number", min=5, id="id_horizon_size",
+                                                                                     value=90
+                                                                                     )
                                                                            ]),
                                                                   ]
                                                                 ),
                                                          dbc.Row([dbc.Col([dbc.Label("Buffer size"),
-                                                                          dbc.Input(type="number", id="id_buffer_size")
+                                                                          dbc.Input(type="number", id="id_buffer_size",
+                                                                                    value=100
+                                                                                    )
                                                                           ]
                                                                           ),
                                                                   dbc.Col([dbc.Label("Number of Epochs"),
-                                                                           dbc.Input(type="number", id="id_num_epochs")
+                                                                           dbc.Input(type="number", id="id_num_epochs",
+                                                                                     #value=3
+                                                                                     )
                                                                            ]
                                                                           ),
                                                                   dbc.Col([dbc.Label("Steps per Epoch"),
@@ -384,7 +383,8 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                                                           ),
                                                                   
                                                                   dbc.Col([dbc.Label("Batch size"),
-                                                                           dbc.Input(type="number", id="id_batch_size"),
+                                                                           dbc.Input(type="number", id="id_batch_size",
+                                                                                     value=64),
                                                                            ]
                                                                           ),
                                                                   dbc.Col([#dbc.Label("Train Model"),
@@ -403,7 +403,7 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                )
 app.layout = appside_layout
 
-app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout])
+app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout, train_config_layout])
 
 def create_portfolio_graphs(company_ticker):
     head_component = [dbc.Row(dcc.DatePickerRange(id="id_portfolio_date")), html.Br(),]
@@ -609,64 +609,61 @@ def show_model_config_dialog(model_config_button_click):
               Input(component_id="id_start_model_train", component_property="n_clicks"),
               Input(component_id="id_stock_date", component_property="start_date"),
               Input(component_id="id_stock_date", component_property="end_date"),
-              Input(component_id="id_stock_ticker", component_property="value")
+              Input(component_id="id_stock_ticker", component_property="value"),
+              Input(component_id="id_steps_per_epoch", component_property="value"),
+              Input(component_id="id_val_steps", component_property="value")
               )  
 def train_model(train_size, val_size, test_size, window_size, horizon_size, buffer_size,
                 batch_size, num_epochs, start_model_train_button, start_date, end_date,
-                stock_ticker
+                stock_ticker, steps_per_epoch, validation_steps
                 ):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     if button_id == "id_start_model_train":
-        
-        if (train_size + val_size + test_size) != 1:
+        total = train_size + val_size + test_size
+        if round(total, 2) != 1:
             raise ValueError(f"Sum of train_size, val_size, and test_size should be equal 1 but got {train_size + val_size + test_size}")
         else:
             data = download_stock_price(stock_ticker=stock_ticker, start_date=start_date, end_date=end_date)
             
+            
             test_size = int(len(data)*test_size)
             test_df = data.tail(test_size)
             train_df = data.drop(test_df.index)
+            train_endpoint = int(len(train_df) * train_size)
 
             trn = Transformer(data=train_df[["Volume"]])
-            # %%
             train_df[["Volume"]] = trn.transform(train_df[["Volume"]])
-            # %%
             test_df[["Volume"]] = trn.minmax_scaler.transform(test_df[["Volume"]])
-            # %%
-            predictors = train_df[train_df.columns[1:]]
-
+            predictors = train_df[predcol]
+            save_model_path = f"model_store/{stock_ticker}.h5"
             target = train_df[['Close']]
-            mod_cls = Model_Trainer(steps_per_epoch=2, epochs=3, 
+            mod_cls = Model_Trainer(steps_per_epoch=steps_per_epoch, 
+                                    epochs=num_epochs, 
                                     predictors=predictors,
                                     target=target, start=0,
-                                    train_endpoint=int(len(train_df) * 0.75),
-                                    window=180, horizon=90, validation_steps=5,
-                                    save_model_path="model_store/META_lstm.h5"
+                                    train_endpoint=train_endpoint,
+                                    window=window_size, horizon=horizon_size, 
+                                    validation_steps=validation_steps,
+                                    batch_size=batch_size, buffer_size=buffer_size,
+                                    save_model_path=save_model_path
                                     )
             # %%
             train_hist, model = mod_cls.run_model_training()
-
-            #%%
-            mod_cls.plot_loss_history()
-
-
-            # %%
-            #model.predict(predictors)
-
-            data_val = train_df[train_df.columns[1:]].tail(180)
-            val_rescaled = np.array(data_val).reshape(1, data_val.shape[0], data_val.shape[1])
-            predicted_results = model.predict(val_rescaled)
-
-            #%%
-
-            test_df["Close"].to_list()
-
-            # %%
-            mod_cls.timeseries_evaluation_metrics(y_true=test_df["Close"].to_list(),
-                                                y_pred=predicted_results.tolist()[0]
-                                                )
-            # %%
+            return {f"{stock_ticker}": {"train_history": train_hist, 
+                                        "model_path": save_model_path,
+                                        "scaler": trn.minmax_scaler
+                                        }
+                    }
+            
+            # mod_cls.plot_loss_history()
+            # data_val = train_df[train_df.columns[1:]].tail(180)
+            # val_rescaled = np.array(data_val).reshape(1, data_val.shape[0], data_val.shape[1])
+            # predicted_results = model.predict(val_rescaled)
+            # test_df["Close"].to_list()
+            # mod_cls.timeseries_evaluation_metrics(y_true=test_df["Close"].to_list(),
+            #                                     y_pred=predicted_results.tolist()[0]
+            #                                     )
 
             
             
@@ -735,7 +732,7 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
 # TODO. Add off canvas to sidebar menu to it can disapper when a buthon is clicked
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server()#debug=True)
 # TODO
 # Add ticker selection option
 

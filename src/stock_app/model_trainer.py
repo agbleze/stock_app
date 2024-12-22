@@ -152,7 +152,7 @@ class Model_Trainer(object):
             self.model.add(tf.keras.layers.Dense(256))
             self.model.add(tf.keras.layers.Dense(units=self.horizon))
             self.model.compile(optimizer=optimizer, loss=loss)
-        else:
+        elif model_type == "cnn":
             self.model = Sequential()
             self.model.add(Conv1D(filters=64, kernel_size=3, activation='relu',
                                                 input_shape=input_shape
@@ -166,6 +166,21 @@ class Model_Trainer(object):
             self.model.add(tf.keras.layers.Dense(256))
             self.model.add(Dense(self.horizon))
             self.model.compile(optimizer=optimizer, loss=loss)
+        elif model_type == "bilstm":
+            self.model = tf.keras.models.Sequential()
+            self.model.add(tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(units=556,
+                                                                                input_shape=input_shape,
+                                                                                return_sequences=True
+                                                                                )
+                                                         )
+                        )
+            self.model.add(tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(units=556, return_sequences=False))
+                            )
+            self.model.add(tf.keras.layers.Dense(256))
+            self.model.add(tf.keras.layers.Dense(256))
+            self.model.add(tf.keras.layers.Dense(units=self.horizon))
+            self.model.compile(optimizer=optimizer, loss=loss)
+
         return self.model
     
     def fit_model(self, model, train_data, val_data, save_model_path, epochs, steps_per_epoch,
@@ -186,7 +201,7 @@ class Model_Trainer(object):
                                                     ]
                                         )
         return self.train_history
-    
+        
     def predict(self, data, model, model_path):
         if model_path:
             model = tf.keras.models.load_model(model_path)
@@ -226,7 +241,7 @@ class Model_Trainer(object):
         val_data = self.load_data(predictor=x_val, target=y_val, batch_size=self.batch_size,
                                   buffer_size=self.buffer_size
                                   )
-        if self.model_type == "lstm":
+        if self.model_type in ("lstm", "bilstm"):
             input_shape = x_train.shape[-2:]
         elif self.model_type == "cnn":
             input_shape = (x_train.shape[1], 
@@ -246,7 +261,7 @@ class Model_Trainer(object):
                                         )
         return self.train_history, self.load_model()
 
-
+#%%
 if __name__ == "__main__":
     # %%
     data = yf.download("META")
