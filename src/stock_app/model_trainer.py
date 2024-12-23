@@ -314,3 +314,25 @@ if __name__ == "__main__":
                                         y_pred=predicted_results.tolist()[0]
                                         )
     # %%
+    import pandas as pd
+    from datetime import timedelta
+
+    # Example DataFrame
+    data = {'date': ['2024-01-01', '2024-01-02', '2024-01-03']}
+    df = pd.DataFrame(data)
+    df['date'] = pd.to_datetime(df['date'])
+
+    # Horizon (number of days to expand)
+    horizon = 7
+
+    # Function to expand dates
+    def expand_dates(df, horizon):
+        max_date = df['date'].max()
+        expanded_dates = pd.date_range(start=max_date + timedelta(days=1), periods=horizon, freq='D')
+        expanded_df = pd.DataFrame({'date': expanded_dates})
+        return pd.concat([df, expanded_df]).reset_index(drop=True)
+
+    # Expand the dates
+    expanded_df = expand_dates(df, horizon)
+    print(expanded_df)
+
