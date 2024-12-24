@@ -199,8 +199,10 @@ stockprice_layout = html.Div(
 brand_holder = html.Span("  Stock Analysis", className="bi bi-menu-down", id="id_brand_holder")
 appside_layout = html.Div(
                             [dbc.NavbarSimple(
-                                                brand=brand_holder, #"Stock Analysis",
+                                                #brand=brand_holder, #"Stock Analysis",
                                                 brand_href="/",
+                                                class_name="bi bi-menu-down",
+                                                children=brand_holder,
                                                 #light=True,
                                                 #brand_style={"color": "#FFFFFF", "backgroundColor": "#00624e"},
                                                 
