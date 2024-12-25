@@ -11,7 +11,7 @@ import joblib
 import functools
 import plotly.express as px
 import dash_trich_components as dtc
-from style import page_style
+#from style import page_style
 import yfinance as yf
 from pandas.core.indexes.multi import MultiIndex
 import functools
@@ -32,6 +32,30 @@ from keras.layers import LSTM, Dense, Bidirectional, MaxPool1D, Dropout
 from statsmodels.tsa.seasonal import seasonal_decompose
 from sklearn.metrics import mean_absolute_percentage_error
 import matplotlib.pyplot as plt
+
+
+def plot_loss(history, title="Loss"):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=history.epoch, 
+                            y=history.history["loss"],
+                            mode="lines", name="Train loss"
+                            )
+                )
+    fig.add_trace(go.Scatter(x=history.epoch, 
+                            y=history.history["val_loss"],
+                            mode="lines", name="Val loss"
+                            )
+                )
+    fig.update_layout(legend=dict(yanchor="bottom",
+                                    y=1.02,
+                                    xanchor="right",
+                                    x=1,
+                                    orientation="h"
+                                ),
+                    template="plotly_dark",
+                    title=title
+                    )
+    return fig 
 
 
 class Transformer(object):
@@ -221,7 +245,7 @@ class Model_Trainer(object):
         
     
     
-    def run_model_training(self, *args, **kwds):
+    def run_model_training(self):
         x_train, y_train = self.horizon_style_data_splitter(predictors=self.predictors, 
                                                             target=self.target,
                                                             start=self.start, end=self.train_endpoint,
@@ -262,77 +286,84 @@ class Model_Trainer(object):
         return self.train_history, self.load_model()
 
 #%%
-if __name__ == "__main__":
-    # %%
-    data = yf.download("META")
+#if __name__ == "__main__":
+    # # %%
+    # data = yf.download("META")
 
-    if isinstance(data.columns, MultiIndex):
-        data.columns = data.columns.droplevel(1)
-    # %%
-    test_df = data.tail(90)
-    train_df = data.drop(test_df.index)
-
-
-
-    # %%
-    trn = Transformer(data=train_df[["Volume"]])
-    # %%
-    train_df[["Volume"]] = trn.transform(train_df[["Volume"]])
-    # %%
-    test_df[["Volume"]] = trn.minmax_scaler.transform(test_df[["Volume"]])
-    # %%
-    predictors = train_df[train_df.columns[1:]]
-
-    target = train_df[['Close']]
-    mod_cls = Model_Trainer(steps_per_epoch=2, epochs=3, 
-                            predictors=predictors,
-                            target=target, start=0,
-                            train_endpoint=int(len(train_df) * 0.75),
-                            window=180, horizon=90, validation_steps=5,
-                            save_model_path="model_store/META_lstm.h5"
-                            )
-    # %%
-    train_hist, model = mod_cls.run_model_training()
-
-    #%%
-    mod_cls.plot_loss_history()
+    # if isinstance(data.columns, MultiIndex):
+    #     data.columns = data.columns.droplevel(1)
+    # # %%
+    # test_df = data.tail(90)
+    # train_df = data.drop(test_df.index)
 
 
-    # %%
-    #model.predict(predictors)
 
-    data_val = train_df[train_df.columns[1:]].tail(180)
-    val_rescaled = np.array(data_val).reshape(1, data_val.shape[0], data_val.shape[1])
-    predicted_results = model.predict(val_rescaled)
+    # # %%
+    # trn = Transformer(data=train_df[["Volume"]])
+    # # %%
+    # train_df[["Volume"]] = trn.transform(train_df[["Volume"]])
+    # # %%
+    # test_df[["Volume"]] = trn.minmax_scaler.transform(test_df[["Volume"]])
+    # # %%
+    # predictors = train_df[train_df.columns[1:]]
 
-    #%%
+    # target = train_df[['Close']]
+    # mod_cls = Model_Trainer(steps_per_epoch=5, epochs=5, 
+    #                         predictors=predictors,
+    #                         target=target, start=0,
+    #                         train_endpoint=int(len(train_df) * 0.75),
+    #                         window=180, horizon=90, validation_steps=5,
+    #                         save_model_path="model_store/META_lstm.h5"
+    #                         )
+    # # %%
+    # train_hist, model = mod_cls.run_model_training()
 
-    test_df["Close"].to_list()
+    # #%%
+    # mod_cls.plot_loss_history()
+    
+    # #%%
+    # train_hist
+    
+    # #%%
+    
+    # #%%
+    # plot_loss(history=train_hist)
 
-    # %%
-    mod_cls.timeseries_evaluation_metrics(y_true=test_df["Close"].to_list(),
-                                        y_pred=predicted_results.tolist()[0]
-                                        )
-    # %%
-    import pandas as pd
-    from datetime import timedelta
+    # # %%
+    # #model.predict(predictors)
 
-    # Example DataFrame
-    data = {'date': ['2024-01-01', '2024-01-02', '2024-01-03']}
-    df = pd.DataFrame(data)
-    df['date'] = pd.to_datetime(df['date'])
+    # data_val = train_df[train_df.columns[1:]].tail(180)
+    # val_rescaled = np.array(data_val).reshape(1, data_val.shape[0], data_val.shape[1])
+    # predicted_results = model.predict(val_rescaled)
 
-    # Horizon (number of days to expand)
-    horizon = 7
+    # #%%
 
-    # Function to expand dates
-    def expand_dates(df, horizon):
-        max_date = df['date'].max()
-        expanded_dates = pd.date_range(start=max_date + timedelta(days=1), periods=horizon, freq='D')
-        expanded_df = pd.DataFrame({'date': expanded_dates})
-        return pd.concat([df, expanded_df]).reset_index(drop=True)
+    # test_df["Close"].to_list()
 
-    # Expand the dates
-    expanded_df = expand_dates(df, horizon)
-    print(expanded_df)
+    # # %%
+    # mod_cls.timeseries_evaluation_metrics(y_true=test_df["Close"].to_list(),
+    #                                     y_pred=predicted_results.tolist()[0]
+    #                                     )
+    # # %%
+    # import pandas as pd
+    # from datetime import timedelta
+
+    # # Example DataFrame
+    # data = {'date': ['2024-01-01', '2024-01-02', '2024-01-03']}
+    # df = pd.DataFrame(data)
+    # df['date'] = pd.to_datetime(df['date'])
+
+    # # Horizon (number of days to expand)
+    # horizon = 7
+
+    # # Function to expand dates
+    # def expand_dates(df, horizon):
+    #     max_date = df['date'].max()
+    #     expanded_dates = pd.date_range(start=max_date + timedelta(days=1), periods=horizon, freq='D')
+    #     expanded_df = pd.DataFrame({'date': expanded_dates})
+    #     return pd.concat([df, expanded_df]).reset_index(drop=True)
+
+    # # Expand the dates
+    # expanded_df = expand_dates(df, horizon)
+    # print(expanded_df)
 

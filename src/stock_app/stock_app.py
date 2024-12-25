@@ -19,7 +19,7 @@ import plotly.graph_objects as go
 from prophet.serialize import model_to_json, model_from_json
 import json
 import numpy as np
-from model_trainer import Model_Trainer, Transformer
+from model_trainer import Model_Trainer, Transformer, plot_loss
 
 card_icon = {
     "color": "#0088BC",
@@ -196,6 +196,16 @@ stockprice_layout = html.Div(
     ]
 )
 
+
+model_performance_children = []
+model_performance = html.Div(dbc.Row(id="id_model_performance", 
+                                     children=[html.Span("No model trained yet") 
+                                               if not model_performance_children
+                                               else model_performance_children
+                                               ][0]
+                                     )
+                             )
+
 brand_holder = html.Span("  Stock Analysis", className="bi bi-menu-down", id="id_brand_holder")
 appside_layout = html.Div(
                             [dbc.NavbarSimple(
@@ -263,6 +273,10 @@ appside_layout = html.Div(
                                                                 dbc.DropdownMenuItem(children=[html.H5(" Performance", className="bi bi-plus-slash-minus")],
                                                                                      id="id_stock_perf",
                                                                                      ),
+                                                                html.Br(),
+                                                                dbc.DropdownMenuItem(children=[html.H5(" Model Performance", className="bi bi-plus-slash-minus")],
+                                                                                     id="id_model_perf",
+                                                                                     )
                                                                 ],
                                                                                            # ),
                                                                                 #],
@@ -405,7 +419,10 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                )
 app.layout = appside_layout
 
-app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout, train_config_layout])
+app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout, 
+                                  train_config_layout, model_performance
+                                  ]
+                                )
 
 def create_portfolio_graphs(company_ticker):
     head_component = [dbc.Row(dcc.DatePickerRange(id="id_portfolio_date")), html.Br(),]
@@ -493,15 +510,37 @@ def plot_model_fit(data, forecast_period=120):
                       )
     return fig
     
-    
+
+# def plot_history(history):
+#     fig = go.Figure()
+#     fig.add_trace(go.Scatter(x=history.epoch, 
+#                             y=history.history["loss"],
+#                             mode="lines", name="Train loss"
+#                             )
+#                 )
+#     fig.add_trace(go.Scatter(x=history.epoch, 
+#                             y=history.history["val_loss"],
+#                             mode="lines", name="Val loss"
+#                             )
+#                 )
+#     fig.update_layout(legend=dict(yanchor="bottom",
+#                                     y=1.02,
+#                                     xanchor="right",
+#                                     x=1,
+#                                     orientation="h"
+#                                 ),
+#                       template="plotly_dark"
+#                       )
+#     return fig 
        
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="page_content", component_property="children"),
               Input(component_id="id_price_chart", component_property="n_clicks_timestamp"),
               Input(component_id="id_portfolio", component_property="n_clicks_timestamp"),
-              Input(component_id="id_stock_perf", component_property="n_clicks_timestamp")
+              Input(component_id="id_stock_perf", component_property="n_clicks_timestamp"),
+              Input(component_id="id_model_perf", component_property="n_clicks_timestamp"),
               )
-def sidebar_display(price_chart: str, portfolio_id, stock_portfolio):#boxplot: str, scatter: str, corr: str):
+def sidebar_display(price_chart: str, portfolio_id, stock_portfolio, model_perf):#boxplot: str, scatter: str, corr: str):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -516,6 +555,8 @@ def sidebar_display(price_chart: str, portfolio_id, stock_portfolio):#boxplot: s
         return portfolio_page    
     elif button_id == "id_stock_perf":
         return portfolio_canvas
+    elif button_id == "id_model_perf":
+        return model_performance
     else:
         print("nothing new to show")
         
@@ -600,6 +641,7 @@ def show_model_config_dialog(model_config_button_click):
         dash.no_update
         
 @app.callback(Output(component_id="id_trained_model_path", component_property="data"),
+              #Output(component_id="id_model_performance", component_property="children"),
               Input(component_id="id_train_size", component_property="value"),
               Input(component_id="id_val_size", component_property="value"),
               Input(component_id="id_test_size", component_property="value"),
@@ -613,7 +655,7 @@ def show_model_config_dialog(model_config_button_click):
               Input(component_id="id_stock_date", component_property="end_date"),
               Input(component_id="id_stock_ticker", component_property="value"),
               Input(component_id="id_steps_per_epoch", component_property="value"),
-              Input(component_id="id_val_steps", component_property="value")
+              Input(component_id="id_val_steps", component_property="value"),
               )  
 def train_model(train_size, val_size, test_size, window_size, horizon_size, buffer_size,
                 batch_size, num_epochs, start_model_train_button, start_date, end_date,
@@ -650,11 +692,16 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
                                     batch_size=batch_size, buffer_size=buffer_size,
                                     save_model_path=save_model_path
                                     )
-            # %%
             train_hist, model = mod_cls.run_model_training()
-            return {f"{stock_ticker}": {"train_history": train_hist, 
+            loss_graph = plot_loss(history=train_hist, title=f"{stock_ticker} model loss")
+            model_loss_grp = dcc.Graph(id=f"id_{stock_ticker}_model_loss", figure=loss_graph)
+            model_perf_col = dbc.Col(model_loss_grp, width=6)
+            #global model_performance_children
+            model_performance_children.append(model_perf_col)
+            return {f"{stock_ticker}": {#"train_history": train_hist, 
                                         "model_path": save_model_path,
-                                        "scaler": trn.minmax_scaler
+                                        "model_performance_children": model_performance_children,
+                                        #"scaler": trn.minmax_scaler
                                         }
                     }
             
@@ -734,7 +781,7 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
 # TODO. Add off canvas to sidebar menu to it can disapper when a buthon is clicked
 
 if __name__ == "__main__":
-    app.run_server()#debug=True)
+    app.run_server()
 # TODO
 # Add ticker selection option
 
