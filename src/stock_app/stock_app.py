@@ -206,6 +206,19 @@ model_performance = html.Div(dbc.Row(id="id_model_performance",
                                      )
                              )
 
+def create_model_performance_ui(model_performance_children):
+    model_performance = html.Div(dbc.Row(id="id_model_performance", 
+                                     children=[html.Span("No model trained yet") 
+                                               if not model_performance_children
+                                               else model_performance_children
+                                               ][0]
+                                     )
+                             )
+    return model_performance
+
+
+
+
 brand_holder = html.Span("  Stock Analysis", className="bi bi-menu-down", id="id_brand_holder")
 appside_layout = html.Div(
                             [dbc.NavbarSimple(
@@ -539,8 +552,11 @@ def plot_model_fit(data, forecast_period=120):
               Input(component_id="id_portfolio", component_property="n_clicks_timestamp"),
               Input(component_id="id_stock_perf", component_property="n_clicks_timestamp"),
               Input(component_id="id_model_perf", component_property="n_clicks_timestamp"),
+              Input(component_id="id_trained_model_path", component_property="data")
               )
-def sidebar_display(price_chart: str, portfolio_id, stock_portfolio, model_perf):#boxplot: str, scatter: str, corr: str):
+def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
+                    model_perf, stored_data
+                    ):#boxplot: str, scatter: str, corr: str):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -556,9 +572,20 @@ def sidebar_display(price_chart: str, portfolio_id, stock_portfolio, model_perf)
     elif button_id == "id_stock_perf":
         return portfolio_canvas
     elif button_id == "id_model_perf":
-        return model_performance
+        print(f"stored_data: {stored_data}")
+        if stored_data:
+            for val in stored_data.values():
+                if "model_performance_children" in val:
+                    model_performance_children = val["model_performance_children"]
+                else:
+                    model_performance_children = []
+        else:
+            model_performance_children = []
+        #model_performance_children = stored_data["model_performance_children"]
+        model_performance_ui = create_model_performance_ui(model_performance_children=model_performance_children)
+        return model_performance_ui
     else:
-        print("nothing new to show")
+        return dash.no_update
         
         
 @app.callback(Output(component_id="id_sidebar_offcanvas",component_property="is_open"),
@@ -634,6 +661,7 @@ def show_model_button(stock_ticker):
 def show_model_config_dialog(model_config_button_click):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    print(f"button_id: {button_id}")
     if button_id == "id_train_model":
     #if model_config_button_click:
         return train_config_layout
@@ -700,7 +728,7 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
             model_performance_children.append(model_perf_col)
             return {f"{stock_ticker}": {#"train_history": train_hist, 
                                         "model_path": save_model_path,
-                                        "model_performance_children": model_performance_children,
+                                        "model_performance_children": model_performance_children, #model_performance_children,
                                         #"scaler": trn.minmax_scaler
                                         }
                     }
