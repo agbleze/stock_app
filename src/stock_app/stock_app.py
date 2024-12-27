@@ -430,6 +430,8 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                         )
                                ]
                                )
+
+prediction_config_layout = html.Div()
 app.layout = appside_layout
 
 app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout, 
@@ -574,11 +576,12 @@ def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
     elif button_id == "id_model_perf":
         print(f"stored_data: {stored_data}")
         if stored_data:
-            for val in stored_data.values():
-                if "model_performance_children" in val:
-                    model_performance_children = val["model_performance_children"]
-                else:
-                    model_performance_children = []
+            for trained_stock in stored_data:
+                for val in trained_stock.values():
+                    if "model_performance_children" in val:
+                        model_performance_children = val["model_performance_children"]
+                    else:
+                        model_performance_children = []
         else:
             model_performance_children = []
         #model_performance_children = stored_data["model_performance_children"]
@@ -645,14 +648,24 @@ def get_date(start_date, end_date, button_click, stock_ticker):
 
 @app.callback(Output(component_id="id_collapse_train_model", component_property="is_open"),
               Output(component_id="id_collapse_model_prediction", component_property="is_open"),
-              Input(component_id="id_stock_ticker", component_property="value")
+              Input(component_id="id_stock_ticker", component_property="value"),
+              Input(component_id="id_trained_model_path", component_property="data"),
               )
-def show_model_button(stock_ticker):
+def show_model_button(stock_ticker, stored_data):
+    if not stored_data:
+        trained_stocks_ticker = []
+    else:
+        trained_stocks_ticker = []
+        for st in stored_data:
+            for ticker in st.keys():
+                trained_stocks_ticker.append(ticker)
+                
+    print(f"trained_stocks_ticker: {trained_stocks_ticker}")
     if not stock_ticker:
         return dash.no_update, dash.no_update
-    if stock_ticker and stock_ticker in ["META"]:
+    if stock_ticker and stock_ticker in trained_stocks_ticker:
         return True, True
-    if stock_ticker and not stock_ticker in ["META"]:
+    if stock_ticker and not stock_ticker in trained_stocks_ticker:
         return True, dash.no_update
     
 @app.callback(Output(component_id="id_config_dialog", component_property="children"),
@@ -684,10 +697,11 @@ def show_model_config_dialog(model_config_button_click):
               Input(component_id="id_stock_ticker", component_property="value"),
               Input(component_id="id_steps_per_epoch", component_property="value"),
               Input(component_id="id_val_steps", component_property="value"),
+              Input(component_id="id_trained_model_path", component_property="data"),
               )  
 def train_model(train_size, val_size, test_size, window_size, horizon_size, buffer_size,
                 batch_size, num_epochs, start_model_train_button, start_date, end_date,
-                stock_ticker, steps_per_epoch, validation_steps
+                stock_ticker, steps_per_epoch, validation_steps, stored_data
                 ):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -726,12 +740,18 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
             model_perf_col = dbc.Col(model_loss_grp, width=6)
             #global model_performance_children
             model_performance_children.append(model_perf_col)
-            return {f"{stock_ticker}": {#"train_history": train_hist, 
+            if not stored_data:
+                res_stored_data = []
+            else:
+                res_stored_data = stored_data
+            res_stored_data.append({f"{stock_ticker}": {#"train_history": train_hist, 
                                         "model_path": save_model_path,
                                         "model_performance_children": model_performance_children, #model_performance_children,
                                         #"scaler": trn.minmax_scaler
                                         }
-                    }
+                    })
+            print(f"res_stored_data: {res_stored_data}")
+            return res_stored_data
             
             # mod_cls.plot_loss_history()
             # data_val = train_df[train_df.columns[1:]].tail(180)
