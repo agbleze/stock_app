@@ -19,7 +19,8 @@ import plotly.graph_objects as go
 from prophet.serialize import model_to_json, model_from_json
 import json
 import numpy as np
-from model_trainer import Model_Trainer, Transformer, plot_loss
+from model_trainer import Model_Trainer, Transformer, plot_loss, expand_dates_excluding_weekends
+import tensorflow as tf
 
 card_icon = {
     "color": "#0088BC",
@@ -191,7 +192,8 @@ stockprice_layout = html.Div(
                                  )
                      ]
                     ),
-            dbc.Row(id="id_config_dialog")
+            dbc.Row(id="id_config_dialog"),
+            dbc.Row(id="id_prediction_result_dialog")
         #])
     ]
 )
@@ -431,11 +433,30 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                ]
                                )
 
-prediction_config_layout = html.Div()
+prediction_config_layout = html.Div(dbc.Modal([dbc.ModalHeader([dbc.ModalTitle("Model prediction")]),
+                                               dbc.ModalBody([dbc.Row([dbc.Col([dbc.Label("Horizon"),
+                                                                                                 dbc.Input(id="id_prediction_horizon",
+                                                                                                           type="number",
+                                                                                                           value=90
+                                                                                                           )
+                                                                                                 ]
+                                                                                                ),
+                                                                                        dbc.Col([html.Br(),
+                                                                                                 dbc.Button("Start Prediction", id="id_start_model_prediction")
+                                                                                                 ]
+                                                                                                )
+                                                                                        ]
+                                                                                       )
+                                                                               ]
+                                                                              )
+                                               ], is_open=True, size="lg"
+                                              )
+                                    )
 app.layout = appside_layout
 
 app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout, 
-                                  train_config_layout, model_performance
+                                  train_config_layout, model_performance, 
+                                  prediction_config_layout
                                   ]
                                 )
 
@@ -525,28 +546,6 @@ def plot_model_fit(data, forecast_period=120):
                       )
     return fig
     
-
-# def plot_history(history):
-#     fig = go.Figure()
-#     fig.add_trace(go.Scatter(x=history.epoch, 
-#                             y=history.history["loss"],
-#                             mode="lines", name="Train loss"
-#                             )
-#                 )
-#     fig.add_trace(go.Scatter(x=history.epoch, 
-#                             y=history.history["val_loss"],
-#                             mode="lines", name="Val loss"
-#                             )
-#                 )
-#     fig.update_layout(legend=dict(yanchor="bottom",
-#                                     y=1.02,
-#                                     xanchor="right",
-#                                     x=1,
-#                                     orientation="h"
-#                                 ),
-#                       template="plotly_dark"
-#                       )
-#     return fig 
        
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="page_content", component_property="children"),
@@ -669,15 +668,18 @@ def show_model_button(stock_ticker, stored_data):
         return True, dash.no_update
     
 @app.callback(Output(component_id="id_config_dialog", component_property="children"),
-              Input(component_id="id_train_model", component_property="n_clicks")
+              Input(component_id="id_train_model", component_property="n_clicks"),
+              Input(component_id="id_model_prediction", component_property="n_clicks")
               )
-def show_model_config_dialog(model_config_button_click):
+def show_model_config_dialog(model_config_button_click, prediction_config_button_click):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     print(f"button_id: {button_id}")
     if button_id == "id_train_model":
     #if model_config_button_click:
         return train_config_layout
+    elif button_id == "id_model_prediction":
+        return prediction_config_layout
     else:
         dash.no_update
         
@@ -717,7 +719,8 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
             test_df = data.tail(test_size)
             train_df = data.drop(test_df.index)
             train_endpoint = int(len(train_df) * train_size)
-
+            fit_end_index = len(train_df)
+            print(f"fit_end_index: {fit_end_index}")
             trn = Transformer(data=train_df[["Volume"]])
             train_df[["Volume"]] = trn.transform(train_df[["Volume"]])
             test_df[["Volume"]] = trn.minmax_scaler.transform(test_df[["Volume"]])
@@ -747,12 +750,81 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
             res_stored_data.append({f"{stock_ticker}": {#"train_history": train_hist, 
                                         "model_path": save_model_path,
                                         "model_performance_children": model_performance_children, #model_performance_children,
-                                        #"scaler": trn.minmax_scaler
+                                        "scaler_info": {"fit_end_index": fit_end_index},
+                                        "window_size": window_size, 
+                                        "horizon_size": horizon_size
                                         }
                     })
             print(f"res_stored_data: {res_stored_data}")
             return res_stored_data
             
+            
+@app.callback(Output(component_id="id_prediction_result_dialog", component_property="children"),
+              Input(component_id="id_stock_date", component_property="start_date"),
+              Input(component_id="id_stock_date", component_property="end_date"),
+              Input(component_id="id_stock_ticker", component_property="value"),
+              Input(component_id="id_prediction_horizon",component_property="value"),
+              Input(component_id="id_start_model_prediction", component_property="n_clicks"),
+              Input(component_id="id_trained_model_path", component_property="data")
+              )
+def make_prediction(start_date, end_date, stock_ticker, pred_horizon, 
+                    start_predic_click, stored_data
+                    ):
+    #print(f"pred_horizon: {pred_horizon}")
+    ctx = dash.callback_context
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if button_id == "id_start_model_prediction":
+        if not stock_ticker:
+            raise ValueError(f"stock_ticker {stock_ticker} not defined")
+        
+        if not stored_data:
+            trained_stocks_ticker = []
+        else:
+            trained_stocks_ticker = []
+            for st in stored_data:
+                for ticker in st.keys():
+                    trained_stocks_ticker.append(ticker)
+                    
+        print(f"trained_stocks_ticker: {trained_stocks_ticker}")
+        if stock_ticker not in trained_stocks_ticker:
+            raise ValueError(f"No trained model found for {stock_ticker}. Please train model before creating prediction")
+        
+        for stored_instance in stored_data:
+            if stock_ticker in stored_instance.keys():
+                stock_model_path = stored_instance[stock_ticker]["model_path"]
+                fit_end_index = stored_instance[stock_ticker]["scaler_info"]["fit_end_index"]
+                window_size = stored_instance[stock_ticker]["window_size"]
+                horizon_size = stored_instance[stock_ticker]["horizon_size"]
+                loaded_model = tf.keras.models.load_model(stock_model_path)
+        
+        data = download_stock_price(stock_ticker=stock_ticker, start_date=start_date, end_date=end_date)
+        train_df = data.head(fit_end_index)
+        trn = Transformer(data=train_df[["Volume"]])
+        scaler = trn.get_minmax_scaler()
+        
+        pred_data = data.tail(window_size)
+        pred_data[["Volume"]] = scaler.transform(pred_data[["Volume"]])
+        pred_data = pred_data[predcol]
+        pred_data_rescaled = np.array(pred_data).reshape(1, pred_data.shape[0], pred_data.shape[1])
+        predicted_results = loaded_model.predict(pred_data_rescaled)
+        pred_data_placeholder = expand_dates_excluding_weekends(df=pred_data, horizon=horizon_size)
+        pred_data_placeholder["predicted_stock_price"] = predicted_results[0]
+        print(f"predicted_results: {predicted_results}")
+        print(f"pred_data_placeholder: {pred_data_placeholder}")
+        title = f"{stock_ticker} Price prediction"
+        pred_graph = px.line(data_frame=pred_data_placeholder, 
+                        x="date", y="predicted_stock_price",
+                        template="plotly_dark", title=title
+                        )
+        pred_figure = dcc.Graph(figure=pred_graph)
+        # data_val = train_df[train_df.columns[1:]].tail(180)
+        # val_rescaled = np.array(data_val).reshape(1, data_val.shape[0], data_val.shape[1])
+        # predicted_results = model.predict(val_rescaled)
+        
+        
+        #predicted_results = loaded_model.predict(data)
+        return dbc.Col(children=pred_figure)
+    
             # mod_cls.plot_loss_history()
             # data_val = train_df[train_df.columns[1:]].tail(180)
             # val_rescaled = np.array(data_val).reshape(1, data_val.shape[0], data_val.shape[1])
@@ -766,17 +838,8 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
             
             
               
-#TODO: Add modelling capabilities
-# a train model button will be available that when clicked, will check if 
-# a model has already been trained for the stock then use that for prediction.
-# there should be option to override this action and force train the model
-
-# When train model is clicked, open a dialog that allow use to set training options
-# When training is completed, the trained model is saved with the stock ticker name
-# When the predict button is clicked, dialog to set set prediction options
-# will open and user makes their settings and request prediction
-# When prediction is requested, the ticker is used to determine which model to 
-# load nad use for prediction
+#TODO: format predictions and plot
+# store train config required during prediction like window size and use this for prediction
 
 # TODO: add validation of model config input
 
