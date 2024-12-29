@@ -80,6 +80,8 @@ company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
 
 predcol = ['High', 'Low', 'Close', 'Adj Close', 'Volume']
 
+model_type = ("lstm", "bilstm", "cnn")
+
 def download_stock_price(stock_ticker, start_date=None, end_date=None, **kwargs):
     data = yf.download(stock_ticker, start=start_date, end=end_date, **kwargs)
     if isinstance(data.columns, MultiIndex):
@@ -387,7 +389,18 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                                                            dbc.Input(type="number", min=5, id="id_horizon_size",
                                                                                      value=90
                                                                                      )
-                                                                           ]),
+                                                                           ]
+                                                                          ),
+                                                                  dbc.Col([dbc.Label("Model type"),
+                                                                           dcc.Dropdown(id="id_model_type",
+                                                                                        options=[{"label": model, "value": model}
+                                                                                                 for model in model_type
+                                                                                                 ],
+                                                                                        value="cnn"
+                                                                                        )
+                                                                           ], 
+                                                                          width=2
+                                                                          )
                                                                   ]
                                                                 ),
                                                          dbc.Row([dbc.Col([dbc.Label("Buffer size"),
@@ -700,23 +713,25 @@ def show_model_config_dialog(model_config_button_click, prediction_config_button
               Input(component_id="id_steps_per_epoch", component_property="value"),
               Input(component_id="id_val_steps", component_property="value"),
               Input(component_id="id_trained_model_path", component_property="data"),
+              Input(component_id="id_model_type", component_property="value")
               )  
 def train_model(train_size, val_size, test_size, window_size, horizon_size, buffer_size,
                 batch_size, num_epochs, start_model_train_button, start_date, end_date,
-                stock_ticker, steps_per_epoch, validation_steps, stored_data
+                stock_ticker, steps_per_epoch, validation_steps, stored_data, model_type
                 ):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    print(f"model_type: {model_type}")
     if button_id == "id_start_model_train":
         total = train_size + val_size + test_size
         if round(total, 2) != 1:
             raise ValueError(f"Sum of train_size, val_size, and test_size should be equal 1 but got {train_size + val_size + test_size}")
         else:
             data = download_stock_price(stock_ticker=stock_ticker, start_date=start_date, end_date=end_date)
-            
-            
-            test_size = int(len(data)*test_size)
-            test_df = data.tail(test_size)
+                       
+            #test_size = int(len(data)*test_size)
+            #test_df = data.tail(test_size)
+            test_df = data.tail(horizon_size)
             train_df = data.drop(test_df.index)
             train_endpoint = int(len(train_df) * train_size)
             fit_end_index = len(train_df)
@@ -727,6 +742,7 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
             predictors = train_df[predcol]
             save_model_path = f"model_store/{stock_ticker}.h5"
             target = train_df[['Close']]
+        
             mod_cls = Model_Trainer(steps_per_epoch=steps_per_epoch, 
                                     epochs=num_epochs, 
                                     predictors=predictors,
@@ -735,14 +751,47 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
                                     window=window_size, horizon=horizon_size, 
                                     validation_steps=validation_steps,
                                     batch_size=batch_size, buffer_size=buffer_size,
-                                    save_model_path=save_model_path
+                                    save_model_path=save_model_path,
+                                    model_type=model_type
                                     )
             train_hist, model = mod_cls.run_model_training()
             loss_graph = plot_loss(history=train_hist, title=f"{stock_ticker} model loss")
             model_loss_grp = dcc.Graph(id=f"id_{stock_ticker}_model_loss", figure=loss_graph)
             model_perf_col = dbc.Col(model_loss_grp, width=6)
-            #global model_performance_children
+            eval_predictors = predictors.tail(window_size)
+            eval_data_rescaled = np.array(eval_predictors).reshape(1, eval_predictors.shape[0], eval_predictors.shape[1])
+            eval_results = model.predict(eval_data_rescaled)
+            eval_data_placeholder = expand_dates_excluding_weekends(df=eval_predictors, horizon=horizon_size)
+            eval_data_placeholder["predicted_stock_price"] = eval_results[0]
+            eval_data_placeholder["actual_stock_price"] = target.tail(horizon_size)["Close"].values
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=eval_data_placeholder["date"], 
+                                    y=eval_data_placeholder["actual_stock_price"],
+                                    mode="lines", name="Actual Stock close price"
+                                    )
+                        )
+            fig.add_trace(go.Scatter(x=eval_data_placeholder["date"], 
+                                    y=eval_data_placeholder["predicted_stock_price"],
+                                    mode="lines", name="predicted stock close price"
+                                    )
+                        )
+            fig.update_layout(legend=dict(yanchor="bottom",
+                                            y=1.02,
+                                            xanchor="right",
+                                            x=1,
+                                            orientation="h"
+                                        ),
+                            template="plotly_dark",
+                            title=f"{stock_ticker} Model Test Evaluation"
+                            )
+            fig
+            model_eval_graph = dcc.Graph(figure=fig)
+            model_eval_col = dbc.Col(model_eval_graph, width=6)                  
             model_performance_children.append(model_perf_col)
+            model_performance_children.append(model_eval_col)
+            
+            
             if not stored_data:
                 res_stored_data = []
             else:
