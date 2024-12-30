@@ -369,14 +369,14 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                                                           dbc.Input(type="number", min=0, max=1, step=0.1, id="id_train_size")
                                                                           ]
                                                                          ),
-                                                                 dbc.Col([dbc.Label("Validation data size"),
-                                                                          dbc.Input(type="number", min=0, max=1, step=0.1, id="id_val_size")
-                                                                          ]
-                                                                         ),
-                                                                 dbc.Col([dbc.Label("Testing data size"),
-                                                                          dbc.Input(type="number", min=0, max=1, step=0.1, id="id_test_size")
-                                                                          ]
-                                                                         )
+                                                                #  dbc.Col([dbc.Label("Validation data size"),
+                                                                #           dbc.Input(type="number", min=0, max=1, step=0.1, id="id_val_size")
+                                                                #           ]
+                                                                #          ),
+                                                                #  dbc.Col([dbc.Label("Testing data size"),
+                                                                #           dbc.Input(type="number", min=0, max=1, step=0.1, id="id_test_size")
+                                                                #           ]
+                                                                #          )
                                                                 ]
                                                                  ),
                                                          dbc.Row([dbc.Col([dbc.Label("Window - size of training timesteps"),
@@ -586,7 +586,7 @@ def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
     elif button_id == "id_stock_perf":
         return portfolio_canvas
     elif button_id == "id_model_perf":
-        print(f"stored_data: {stored_data}")
+        #print(f"stored_data: {stored_data}")
         if stored_data:
             for trained_stock in stored_data:
                 for val in trained_stock.values():
@@ -641,9 +641,9 @@ def get_date(start_date, end_date, button_click, stock_ticker):
         return  dash.no_update
         
     if button_id == 'id_submit_stock_request':
-        print(f"start_date: {start_date}")
-        print(f"end_date: {end_date}")
-        print(f"stock_ticker: {stock_ticker}")
+        #print(f"start_date: {start_date}")
+        #print(f"end_date: {end_date}")
+        #print(f"stock_ticker: {stock_ticker}")
     
         data = yf.download(stock_ticker, start=start_date, end=end_date)
         if isinstance(data.columns, MultiIndex):
@@ -699,8 +699,8 @@ def show_model_config_dialog(model_config_button_click, prediction_config_button
 @app.callback(Output(component_id="id_trained_model_path", component_property="data"),
               #Output(component_id="id_model_performance", component_property="children"),
               Input(component_id="id_train_size", component_property="value"),
-              Input(component_id="id_val_size", component_property="value"),
-              Input(component_id="id_test_size", component_property="value"),
+              #Input(component_id="id_val_size", component_property="value"),
+              #Input(component_id="id_test_size", component_property="value"),
               Input(component_id="id_window_size", component_property="value"),
               Input(component_id="id_horizon_size", component_property="value"),
               Input(component_id="id_buffer_size", component_property="value"),
@@ -715,7 +715,8 @@ def show_model_config_dialog(model_config_button_click, prediction_config_button
               Input(component_id="id_trained_model_path", component_property="data"),
               Input(component_id="id_model_type", component_property="value")
               )  
-def train_model(train_size, val_size, test_size, window_size, horizon_size, buffer_size,
+def train_model(train_size, #val_size, test_size, 
+                window_size, horizon_size, buffer_size,
                 batch_size, num_epochs, start_model_train_button, start_date, end_date,
                 stock_ticker, steps_per_epoch, validation_steps, stored_data, model_type
                 ):
@@ -723,90 +724,97 @@ def train_model(train_size, val_size, test_size, window_size, horizon_size, buff
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     print(f"model_type: {model_type}")
     if button_id == "id_start_model_train":
-        total = train_size + val_size + test_size
-        if round(total, 2) != 1:
-            raise ValueError(f"Sum of train_size, val_size, and test_size should be equal 1 but got {train_size + val_size + test_size}")
-        else:
-            data = download_stock_price(stock_ticker=stock_ticker, start_date=start_date, end_date=end_date)
-                       
-            #test_size = int(len(data)*test_size)
-            #test_df = data.tail(test_size)
-            test_df = data.tail(horizon_size)
-            train_df = data.drop(test_df.index)
-            train_endpoint = int(len(train_df) * train_size)
-            fit_end_index = len(train_df)
-            print(f"fit_end_index: {fit_end_index}")
-            trn = Transformer(data=train_df[["Volume"]])
-            train_df[["Volume"]] = trn.transform(train_df[["Volume"]])
-            test_df[["Volume"]] = trn.minmax_scaler.transform(test_df[["Volume"]])
-            predictors = train_df[predcol]
-            save_model_path = f"model_store/{stock_ticker}.h5"
-            target = train_df[['Close']]
+        #total = train_size + val_size + test_size
+    #if round(total, 2) != 1:
+        #raise ValueError(f"Sum of train_size, val_size, and test_size should be equal 1 but got {train_size + val_size + test_size}")
+    #else:
+        data = download_stock_price(stock_ticker=stock_ticker, start_date=start_date, end_date=end_date)
+                    
+        #test_size = int(len(data)*test_size)
+        #test_df = data.tail(test_size)
+        test_df = data.tail(horizon_size)
+        train_df = data.drop(test_df.index)
+        train_endpoint = int(len(train_df) * train_size)
+        fit_end_index = len(train_df)
+        #print(f"fit_end_index: {fit_end_index}")
+        trn = Transformer(data=train_df[["Volume"]])
+        train_df[["Volume"]] = trn.transform(train_df[["Volume"]])
+        test_df[["Volume"]] = trn.minmax_scaler.transform(test_df[["Volume"]])
+        predictors = train_df[predcol]
+        save_model_path = f"model_store/{stock_ticker}.h5"
+        target = train_df[['Close']]
+    
+        mod_cls = Model_Trainer(steps_per_epoch=steps_per_epoch, 
+                                epochs=num_epochs, 
+                                predictors=predictors,
+                                target=target, start=0,
+                                train_endpoint=train_endpoint,
+                                window=window_size, horizon=horizon_size, 
+                                validation_steps=validation_steps,
+                                batch_size=batch_size, buffer_size=buffer_size,
+                                save_model_path=save_model_path,
+                                model_type=model_type
+                                )
+        train_hist, model = mod_cls.run_model_training()
+        loss_graph = plot_loss(history=train_hist, title=f"{stock_ticker} model loss")
+        model_loss_grp = dcc.Graph(id=f"id_{stock_ticker}_model_loss", figure=loss_graph)
+        model_perf_col = dbc.Col(model_loss_grp, width=6)
+        eval_predictors = predictors.tail(window_size)
+        eval_data_rescaled = np.array(eval_predictors).reshape(1, eval_predictors.shape[0], eval_predictors.shape[1])
+        eval_results = model.predict(eval_data_rescaled)
+        test_date = {"date": test_df.index}
+        eval_data_placeholder = pd.DataFrame(test_date)
+        #eval_data_placeholder = expand_dates_excluding_weekends(df=test_df, horizon=horizon_size)
+        eval_data_placeholder["predicted_stock_price"] = eval_results[0]
+        eval_data_placeholder["actual_stock_price"] = test_df["Close"].values
+        res = mod_cls.timeseries_evaluation_metrics(y_true=test_df["Close"].values,
+                                                    y_pred=eval_results[0]
+                                                    )
+        rmse = round(res["root_mean_squared_error"], 3)
+        r2 = round(res["R2"], 3)
+        #print(f"test_df['Close']: {test_df['Close']}")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=eval_data_placeholder["date"], 
+                                y=eval_data_placeholder["actual_stock_price"],
+                                mode="lines", name="Actual Stock close price"
+                                )
+                    )
+        fig.add_trace(go.Scatter(x=eval_data_placeholder["date"], 
+                                y=eval_data_placeholder["predicted_stock_price"],
+                                mode="lines", name="predicted stock close price"
+                                )
+                    )
+        fig.update_layout(legend=dict(yanchor="bottom",
+                                        y=1.02,
+                                        xanchor="right",
+                                        x=1,
+                                        orientation="h"
+                                    ),
+                        template="plotly_dark",
+                        title=f"{stock_ticker} {model_type} Model Test Evaluation   RMSE: {rmse}  R2: {r2}"
+                        )
+        fig
+        model_eval_graph = dcc.Graph(figure=fig)
+        model_eval_col = dbc.Col(model_eval_graph, width=6)                  
+        model_performance_children.append(model_perf_col)
+        model_performance_children.append(model_eval_col)
         
-            mod_cls = Model_Trainer(steps_per_epoch=steps_per_epoch, 
-                                    epochs=num_epochs, 
-                                    predictors=predictors,
-                                    target=target, start=0,
-                                    train_endpoint=train_endpoint,
-                                    window=window_size, horizon=horizon_size, 
-                                    validation_steps=validation_steps,
-                                    batch_size=batch_size, buffer_size=buffer_size,
-                                    save_model_path=save_model_path,
-                                    model_type=model_type
-                                    )
-            train_hist, model = mod_cls.run_model_training()
-            loss_graph = plot_loss(history=train_hist, title=f"{stock_ticker} model loss")
-            model_loss_grp = dcc.Graph(id=f"id_{stock_ticker}_model_loss", figure=loss_graph)
-            model_perf_col = dbc.Col(model_loss_grp, width=6)
-            eval_predictors = predictors.tail(window_size)
-            eval_data_rescaled = np.array(eval_predictors).reshape(1, eval_predictors.shape[0], eval_predictors.shape[1])
-            eval_results = model.predict(eval_data_rescaled)
-            eval_data_placeholder = expand_dates_excluding_weekends(df=eval_predictors, horizon=horizon_size)
-            eval_data_placeholder["predicted_stock_price"] = eval_results[0]
-            eval_data_placeholder["actual_stock_price"] = target.tail(horizon_size)["Close"].values
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=eval_data_placeholder["date"], 
-                                    y=eval_data_placeholder["actual_stock_price"],
-                                    mode="lines", name="Actual Stock close price"
-                                    )
-                        )
-            fig.add_trace(go.Scatter(x=eval_data_placeholder["date"], 
-                                    y=eval_data_placeholder["predicted_stock_price"],
-                                    mode="lines", name="predicted stock close price"
-                                    )
-                        )
-            fig.update_layout(legend=dict(yanchor="bottom",
-                                            y=1.02,
-                                            xanchor="right",
-                                            x=1,
-                                            orientation="h"
-                                        ),
-                            template="plotly_dark",
-                            title=f"{stock_ticker} Model Test Evaluation"
-                            )
-            fig
-            model_eval_graph = dcc.Graph(figure=fig)
-            model_eval_col = dbc.Col(model_eval_graph, width=6)                  
-            model_performance_children.append(model_perf_col)
-            model_performance_children.append(model_eval_col)
-            
-            
-            if not stored_data:
-                res_stored_data = []
-            else:
-                res_stored_data = stored_data
-            res_stored_data.append({f"{stock_ticker}": {#"train_history": train_hist, 
-                                        "model_path": save_model_path,
-                                        "model_performance_children": model_performance_children, #model_performance_children,
-                                        "scaler_info": {"fit_end_index": fit_end_index},
-                                        "window_size": window_size, 
-                                        "horizon_size": horizon_size
-                                        }
-                    })
-            print(f"res_stored_data: {res_stored_data}")
-            return res_stored_data
-            
+        
+        if not stored_data:
+            res_stored_data = []
+        else:
+            res_stored_data = stored_data
+        res_stored_data.append({f"{stock_ticker}": {#"train_history": train_hist, 
+                                    "model_path": save_model_path,
+                                    "model_performance_children": model_performance_children, #model_performance_children,
+                                    "scaler_info": {"fit_end_index": fit_end_index},
+                                    "window_size": window_size, 
+                                    "horizon_size": horizon_size
+                                    }
+                })
+        #print(f"res_stored_data: {res_stored_data}")
+        return res_stored_data
+        
             
 @app.callback(Output(component_id="id_prediction_result_dialog", component_property="children"),
               Input(component_id="id_stock_date", component_property="start_date"),
@@ -834,7 +842,7 @@ def make_prediction(start_date, end_date, stock_ticker, pred_horizon,
                 for ticker in st.keys():
                     trained_stocks_ticker.append(ticker)
                     
-        print(f"trained_stocks_ticker: {trained_stocks_ticker}")
+        #print(f"trained_stocks_ticker: {trained_stocks_ticker}")
         if stock_ticker not in trained_stocks_ticker:
             raise ValueError(f"No trained model found for {stock_ticker}. Please train model before creating prediction")
         
@@ -858,8 +866,8 @@ def make_prediction(start_date, end_date, stock_ticker, pred_horizon,
         predicted_results = loaded_model.predict(pred_data_rescaled)
         pred_data_placeholder = expand_dates_excluding_weekends(df=pred_data, horizon=horizon_size)
         pred_data_placeholder["predicted_stock_price"] = predicted_results[0]
-        print(f"predicted_results: {predicted_results}")
-        print(f"pred_data_placeholder: {pred_data_placeholder}")
+        #print(f"predicted_results: {predicted_results}")
+        #print(f"pred_data_placeholder: {pred_data_placeholder}")
         title = f"{stock_ticker} Price prediction"
         pred_graph = px.line(data_frame=pred_data_placeholder, 
                         x="date", y="predicted_stock_price",
