@@ -369,10 +369,10 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                                                           dbc.Input(type="number", min=0, max=1, step=0.1, id="id_train_size")
                                                                           ]
                                                                          ),
-                                                                #  dbc.Col([dbc.Label("Validation data size"),
-                                                                #           dbc.Input(type="number", min=0, max=1, step=0.1, id="id_val_size")
-                                                                #           ]
-                                                                #          ),
+                                                                 dbc.Col([dbc.Label("Save model as"),
+                                                                          dbc.Input(type="string",  id="id_save_model_as", value=None)
+                                                                          ]
+                                                                         ),
                                                                 #  dbc.Col([dbc.Label("Testing data size"),
                                                                 #           dbc.Input(type="number", min=0, max=1, step=0.1, id="id_test_size")
                                                                 #           ]
