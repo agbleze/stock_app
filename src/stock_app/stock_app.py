@@ -447,10 +447,10 @@ train_config_layout = html.Div([dbc.Modal([dbc.ModalHeader(dbc.ModalTitle("Confi
                                )
 
 prediction_config_layout = html.Div(dbc.Modal([dbc.ModalHeader([dbc.ModalTitle("Model prediction")]),
-                                               dbc.ModalBody([dbc.Row([dbc.Col([dbc.Label("Horizon"),
-                                                                                                 dbc.Input(id="id_prediction_horizon",
-                                                                                                           type="number",
-                                                                                                           value=90
+                                               dbc.ModalBody([dbc.Row([dbc.Col([dbc.Label("Model name"),
+                                                                                                 dbc.Input(id="id_model_name",
+                                                                                                           type="string",
+                                                                                                           value=None
                                                                                                            )
                                                                                                  ]
                                                                                                 ),
@@ -699,7 +699,7 @@ def show_model_config_dialog(model_config_button_click, prediction_config_button
 @app.callback(Output(component_id="id_trained_model_path", component_property="data"),
               #Output(component_id="id_model_performance", component_property="children"),
               Input(component_id="id_train_size", component_property="value"),
-              #Input(component_id="id_val_size", component_property="value"),
+              Input(component_id="id_save_model_as", component_property="value"),
               #Input(component_id="id_test_size", component_property="value"),
               Input(component_id="id_window_size", component_property="value"),
               Input(component_id="id_horizon_size", component_property="value"),
@@ -715,7 +715,7 @@ def show_model_config_dialog(model_config_button_click, prediction_config_button
               Input(component_id="id_trained_model_path", component_property="data"),
               Input(component_id="id_model_type", component_property="value")
               )  
-def train_model(train_size, #val_size, test_size, 
+def train_model(train_size, save_model_as, #val_size, test_size, 
                 window_size, horizon_size, buffer_size,
                 batch_size, num_epochs, start_model_train_button, start_date, end_date,
                 stock_ticker, steps_per_epoch, validation_steps, stored_data, model_type
@@ -741,7 +741,8 @@ def train_model(train_size, #val_size, test_size,
         train_df[["Volume"]] = trn.transform(train_df[["Volume"]])
         test_df[["Volume"]] = trn.minmax_scaler.transform(test_df[["Volume"]])
         predictors = train_df[predcol]
-        save_model_path = f"model_store/{stock_ticker}.h5"
+        model_name = [stock_ticker if not save_model_as else save_model_as][0]
+        save_model_path = f"model_store/{model_name}.h5"
         target = train_df[['Close']]
     
         mod_cls = Model_Trainer(steps_per_epoch=steps_per_epoch, 
@@ -809,7 +810,8 @@ def train_model(train_size, #val_size, test_size,
                                     "model_performance_children": model_performance_children, #model_performance_children,
                                     "scaler_info": {"fit_end_index": fit_end_index},
                                     "window_size": window_size, 
-                                    "horizon_size": horizon_size
+                                    "horizon_size": horizon_size,
+                                    "model_name": model_name
                                     }
                 })
         #print(f"res_stored_data: {res_stored_data}")
@@ -820,11 +822,11 @@ def train_model(train_size, #val_size, test_size,
               Input(component_id="id_stock_date", component_property="start_date"),
               Input(component_id="id_stock_date", component_property="end_date"),
               Input(component_id="id_stock_ticker", component_property="value"),
-              Input(component_id="id_prediction_horizon",component_property="value"),
+              Input(component_id="id_model_name",component_property="value"),
               Input(component_id="id_start_model_prediction", component_property="n_clicks"),
               Input(component_id="id_trained_model_path", component_property="data")
               )
-def make_prediction(start_date, end_date, stock_ticker, pred_horizon, 
+def make_prediction(start_date, end_date, stock_ticker, model_name, 
                     start_predic_click, stored_data
                     ):
     #print(f"pred_horizon: {pred_horizon}")
@@ -835,24 +837,27 @@ def make_prediction(start_date, end_date, stock_ticker, pred_horizon,
             raise ValueError(f"stock_ticker {stock_ticker} not defined")
         
         if not stored_data:
-            trained_stocks_ticker = []
+            trained_model_names = []
         else:
-            trained_stocks_ticker = []
-            for st in stored_data:
-                for ticker in st.keys():
-                    trained_stocks_ticker.append(ticker)
+            trained_model_names = []
+            for data in stored_data:
+                stored_model_name = [data_item.get("model_name") for data_item in data.values()][0]
+                trained_model_names.append(stored_model_name)
                     
         #print(f"trained_stocks_ticker: {trained_stocks_ticker}")
-        if stock_ticker not in trained_stocks_ticker:
+        if model_name not in trained_model_names:
             raise ValueError(f"No trained model found for {stock_ticker}. Please train model before creating prediction")
         
         for stored_instance in stored_data:
             if stock_ticker in stored_instance.keys():
-                stock_model_path = stored_instance[stock_ticker]["model_path"]
-                fit_end_index = stored_instance[stock_ticker]["scaler_info"]["fit_end_index"]
-                window_size = stored_instance[stock_ticker]["window_size"]
-                horizon_size = stored_instance[stock_ticker]["horizon_size"]
-                loaded_model = tf.keras.models.load_model(stock_model_path)
+                if model_name == stored_instance[stock_ticker]["model_name"]:
+                    stock_model_path = stored_instance[stock_ticker]["model_path"]
+                    fit_end_index = stored_instance[stock_ticker]["scaler_info"]["fit_end_index"]
+                    window_size = stored_instance[stock_ticker]["window_size"]
+                    horizon_size = stored_instance[stock_ticker]["horizon_size"]
+                    loaded_model = tf.keras.models.load_model(stock_model_path)
+                else:
+                    raise FileNotFoundError(f"Selected model: {model_name} not found: Need to train a model saved as {model_name}")
         
         data = download_stock_price(stock_ticker=stock_ticker, start_date=start_date, end_date=end_date)
         train_df = data.head(fit_end_index)
