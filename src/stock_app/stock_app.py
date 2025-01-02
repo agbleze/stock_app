@@ -843,7 +843,7 @@ def make_prediction(start_date, end_date, stock_ticker, model_name,
             for data in stored_data:
                 stored_model_name = [data_item.get("model_name") for data_item in data.values()][0]
                 trained_model_names.append(stored_model_name)
-                    
+        print(f"trained_model_names: {trained_model_names}")            
         #print(f"trained_stocks_ticker: {trained_stocks_ticker}")
         if model_name not in trained_model_names:
             raise ValueError(f"No trained model found for {stock_ticker}. Please train model before creating prediction")
