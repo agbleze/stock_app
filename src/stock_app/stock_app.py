@@ -1,3 +1,4 @@
+#%%
 from dash import html, Input, Output, State, dcc, callback_context, callback, Dash
 from datetime import date
 import dash_bootstrap_components as dbc
@@ -951,7 +952,7 @@ def make_prediction(start_date, end_date, stock_ticker, model_name,
 # https://www.sap.com/investors/en/stock.html
 
 
-# TODO. Add off canvas to sidebar menu to it can disapper when a buthon is clicked
+#%% TODO. Add off canvas to sidebar menu to it can disapper when a buthon is clicked
 
 if __name__ == "__main__":
     app.run_server()
@@ -985,3 +986,29 @@ countries = stock_data.get_all_countries()
 indices = stock_data.get_all_indices()
 industries = stock_data.get_all_industries()
 # %%
+(101/100)*9.17
+
+#%%
+(8.20/7.94)*100
+
+# %%
+
+# %%
+
+## trading algorithm
+#1. Buy at close price and exit at 1% profit margin
+
+
+#%%
+dwave = download_stock_price(stock_ticker="QBTS")
+
+#%%
+dwave_rows = [i for i in dwave.iterrows()]
+
+for i in dwave_rows:
+    print(type(i[1]))
+
+for rowdata_index, rowdata in monitor_data.iterrows():
+#%%
+def calculate_profit(df, profit_percent):
+    pass
