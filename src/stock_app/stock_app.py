@@ -1005,10 +1005,61 @@ dwave = download_stock_price(stock_ticker="QBTS")
 #%%
 dwave_rows = [i for i in dwave.iterrows()]
 
-for i in dwave_rows:
-    print(type(i[1]))
 
-for rowdata_index, rowdata in monitor_data.iterrows():
+
+#%%
+higher_high = 0
+all_comp = 0
+for rowdata_index, rowdata in dwave.iterrows():
+    curr_close_price = rowdata["Close"]
+    if rowdata_index != dwave.tail(1).index:
+        nextday_high = dwave[dwave.index >= rowdata_index].iloc[1]["High"]
+        if nextday_high > curr_close_price:
+            higher_high += 1
+            all_comp += 1
+        else:
+            all_comp += 1
+    else:
+        print(f"last day: {rowdata_index}")
+    #break 
+
+(higher_high / all_comp) * 100
+
+#%%
+def calculate_prob(df, type="close higher than next day High"):
+    higher_high = 0
+    all_comp = 0
+    for rowdata_index, rowdata in df.iterrows():
+        curr_close_price = rowdata["Close"]
+        if rowdata_index != df.tail(1).index:
+            nextday_high = df[df.index >= rowdata_index].iloc[1]["High"]
+            if nextday_high > curr_close_price:
+                higher_high += 1
+                all_comp += 1
+            else:
+                all_comp += 1
+        else:
+            print(f"last day: {rowdata_index}")
+        #break 
+
+    prob = (higher_high / all_comp) * 100
+    return prob
+    
+    
+# algo
+"""
+use open price as baseline and when price falls below it for about 2% buy 
+and sell at 1% profit
+
+this needs to be based on analysis of the typical difference between open and 
+close particularly when it closes lower than open
+"""
+
+#%%
+
+(8.83/9.11) * 100
+#%%
+dwave[["Close"]].shift(-1)       
 #%%
 def calculate_profit(df, profit_percent):
     pass
