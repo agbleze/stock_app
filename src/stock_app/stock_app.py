@@ -1002,6 +1002,9 @@ industries = stock_data.get_all_industries()
 #%%
 dwave = download_stock_price(stock_ticker="QBTS")
 
+
+#%%
+
 #%%
 dwave_rows = [i for i in dwave.iterrows()]
 
@@ -1026,7 +1029,7 @@ for rowdata_index, rowdata in dwave.iterrows():
 (higher_high / all_comp) * 100
 
 #%%
-def calculate_prob(df, type="close higher than next day High"):
+def calculate_prob(df, type="close lower than next day High"):
     higher_high = 0
     all_comp = 0
     for rowdata_index, rowdata in df.iterrows():
@@ -1045,8 +1048,26 @@ def calculate_prob(df, type="close higher than next day High"):
     prob = (higher_high / all_comp) * 100
     return prob
     
-    
-# algo
+
+#%%
+calculate_prob(dwave)
+   
+#%%
+
+bigbear = download_stock_price(stock_ticker="BBAI")
+
+#%%
+calculate_prob(bigbear)
+
+#%%
+liveperson = download_stock_price(stock_ticker="LPSN")
+
+calculate_prob(liveperson)
+
+#%%
+nvda = download_stock_price(stock_ticker="NVDA")
+calculate_prob(nvda)
+#%% algo
 """
 use open price as baseline and when price falls below it for about 2% buy 
 and sell at 1% profit
@@ -1057,7 +1078,7 @@ close particularly when it closes lower than open
 
 #%%
 
-(8.83/9.11) * 100
+(2.76/2.70) * 100
 #%%
 dwave[["Close"]].shift(-1)       
 #%%
