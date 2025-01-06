@@ -986,7 +986,7 @@ countries = stock_data.get_all_countries()
 indices = stock_data.get_all_indices()
 industries = stock_data.get_all_industries()
 # %%
-(101/100)*9.17
+(101/100)*7.84
 
 #%%
 (8.20/7.94)*100
@@ -1029,7 +1029,7 @@ for rowdata_index, rowdata in dwave.iterrows():
 (higher_high / all_comp) * 100
 
 #%%
-def calculate_prob(df, type="close lower than next day High"):
+def calculate_prob(df, type="close lower than next day High", cal_profit_percent=True):
     higher_high = 0
     all_comp = 0
     for rowdata_index, rowdata in df.iterrows():
@@ -1067,6 +1067,13 @@ calculate_prob(liveperson)
 #%%
 nvda = download_stock_price(stock_ticker="NVDA")
 calculate_prob(nvda)
+
+#%%
+laes = download_stock_price(stock_ticker="LAES")
+calculate_prob(laes)
+
+
+
 #%% algo
 """
 use open price as baseline and when price falls below it for about 2% buy 
