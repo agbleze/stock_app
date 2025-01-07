@@ -1122,8 +1122,41 @@ more_thn_1 = [pft for pft in qsi_res["profit_percent_scores"] if pft > 1]
 #%%
 
 def calculate_prob_close_lower_thn_open(df):
-    pass
+    proba = 0
+    all_comp = 0
+    loss_percent_list = []
+    loss = 0
+    for row_index, row_data in df.iterrows():
+        if row_data["Close"] < row_data["Open"]:
+            proba += 1
+            all_comp += 1
+            loss_score = (row_data["Close"] / row_data["Open"]) * 100
+            loss_res = loss_score - 100
+            loss_percent_list.append(loss_res)
+            loss_percent = loss - loss_res
+        else:
+            all_comp += 1
+            
+    return {"total_samples": all_comp, "loss_percent_list": loss_percent_list,
+            "probability": (proba / all_comp) * 100,
+            "loss_percent": sum(loss_percent_list)
+            }
+        
 
+#%%
+
+laes_close_lwr_thn_opn = calculate_prob_close_lower_thn_open(df=laes)
+
+#%%
+
+laes_close_lwr_thn_opn
+
+
+#%%
+"""
+what is the proba that when close is lower than open, next day 
+high will be higher than prevous day high
+"""
 
 #%% algo
 """
