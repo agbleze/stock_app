@@ -986,7 +986,7 @@ countries = stock_data.get_all_countries()
 indices = stock_data.get_all_indices()
 industries = stock_data.get_all_industries()
 # %%
-(101/100)*7.84
+(107/100)*7.6
 
 #%%
 (8.20/7.94)*100
@@ -1032,12 +1032,21 @@ for rowdata_index, rowdata in dwave.iterrows():
 def calculate_prob(df, type="close lower than next day High", cal_profit_percent=True):
     higher_high = 0
     all_comp = 0
+    profit_percent = 0
+    profit_percent_scores = []
     for rowdata_index, rowdata in df.iterrows():
+        #if type == "close lower than next day High":
         curr_close_price = rowdata["Close"]
         if rowdata_index != df.tail(1).index:
             nextday_high = df[df.index >= rowdata_index].iloc[1]["High"]
             if nextday_high > curr_close_price:
                 higher_high += 1
+                if cal_profit_percent:
+                    profit = ((nextday_high / curr_close_price) * 100) -100
+                    #print(f"profit: {profit}")
+                    profit_percent += profit
+                    profit_percent_scores.append(profit)
+                    
                 all_comp += 1
             else:
                 all_comp += 1
@@ -1046,7 +1055,11 @@ def calculate_prob(df, type="close lower than next day High", cal_profit_percent
         #break 
 
     prob = (higher_high / all_comp) * 100
-    return prob
+    return {"probability": prob, 
+            "profit_percent": profit_percent,
+            "profit_percent_scores": profit_percent_scores,
+            "total_instances": all_comp
+            }
     
 
 #%%
@@ -1057,21 +1070,59 @@ calculate_prob(dwave)
 bigbear = download_stock_price(stock_ticker="BBAI")
 
 #%%
-calculate_prob(bigbear)
+bigbear_res = calculate_prob(bigbear)
 
+
+#%%
+
+pft_score = bigbear_res["profit_percent_scores"]
+
+more_thn_1 = [pft for pft in pft_score if pft > 1]
+
+#%%
+
+(len(more_thn_1) / bigbear_res["total_instances"]) * 100
 #%%
 liveperson = download_stock_price(stock_ticker="LPSN")
 
-calculate_prob(liveperson)
+liveperson_res = calculate_prob(liveperson)
 
+(len(liveperson_res["profit_percent_scores"]) / liveperson_res["total_instances"]) * 100
+more_thn_1 = [pft for pft in liveperson_res["profit_percent_scores"] if pft > 1]
+(len(more_thn_1) / liveperson_res["total_instances"]) * 100
 #%%
 nvda = download_stock_price(stock_ticker="NVDA")
-calculate_prob(nvda)
+nvda_res = calculate_prob(nvda)
+(len(nvda_res["profit_percent_scores"]) / nvda_res["total_instances"]) * 100
 
+
+more_thn_1 = [pft for pft in nvda_res["profit_percent_scores"] if pft > 1]
+(len(more_thn_1) / nvda_res["total_instances"]) * 100
 #%%
 laes = download_stock_price(stock_ticker="LAES")
-calculate_prob(laes)
+laes_res = calculate_prob(laes)
+more_thn_1 = [pft for pft in laes_res["profit_percent_scores"] if pft > 1]
+(len(more_thn_1) / laes_res["total_instances"]) * 100
 
+
+
+#%%
+cerence = download_stock_price(stock_ticker="CRNC")
+cerence_res = calculate_prob(cerence)
+more_thn_1 = [pft for pft in cerence_res["profit_percent_scores"] if pft > 2]
+(len(more_thn_1) / cerence_res["total_instances"]) * 100
+
+#%%
+qsi = download_stock_price(stock_ticker="QSI")
+qsi_res = calculate_prob(qsi)
+more_thn_1 = [pft for pft in qsi_res["profit_percent_scores"] if pft > 1]
+(len(more_thn_1) / qsi_res["total_instances"]) * 100
+
+
+#%%
+
+def calculate_prob_close_lower_thn_open(df):
+    pass
 
 
 #%% algo
@@ -1083,9 +1134,19 @@ this needs to be based on analysis of the typical difference between open and
 close particularly when it closes lower than open
 """
 
+
+
 #%%
 
-(2.76/2.70) * 100
+from dataclasses import dataclass
+
+#%%
+
+
+(95/100)*1053
+#%%
+
+(9.10/7.6) * 100
 #%%
 dwave[["Close"]].shift(-1)       
 #%%
