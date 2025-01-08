@@ -1151,6 +1151,8 @@ laes_close_lwr_thn_opn = calculate_prob_close_lower_thn_open(df=laes)
 
 laes_close_lwr_thn_opn
 
+#%%
+
 
 #%%
 """
@@ -1176,10 +1178,74 @@ from dataclasses import dataclass
 #%%
 
 
-(95/100)*1053
+(97/100)*5.07
 #%%
 
-(9.10/7.6) * 100
+(7.02/6.90) * 100
+
+
+#%%
+"""
+for LAES, there is a band of .90 to .02 that can is observed
+to be oscillating. 
+Eg: Buy at 7.90 and sell at 8.02
+2. Buy at 6.90 and sell at 7.02
+3. Buy at 5.90 and sell at 6.02
+
+"""
+
+
+"""
+for LAES, it has been be observed that at about 14:00 there is a price spike up 
+and some few minutes prior to that is downward spiral. 
+Strategy: time and buy during the downward spiral and take profit from 14:00 to 15:00
+
+Trading zone for entry and exit is from 13:00 to 15:00
+
+"""
+
+
+#%%
+"""
+
+For LAES, it is observed that most of the volume occurs priori to 17:00
+
+After 17:00, price action slows down significantly and can only be used to scalping of maximum 3%.
+A safe and recommended is 1%.
+
+Find the band of oscillation and scrap them for 1% profit
+"""
+
+
+#%%
+
+import yfinance as yf
+
+#%%
+
+import yfinance as yf
+import pandas as pd
+import datetime
+
+
+#%%
+ticker_symbol = 'AAPL'  # Example: Apple Inc.
+start_date = '2024-12-01'
+end_date = '2023-01-02'
+
+
+#%%
+data = yf.download("LAES", start=start_date, interval='2m')
+#data.head()
+
+
+#%%
+
+data.tail()
+
+
+#%%
+(97/100)*5.16
 #%%
 dwave[["Close"]].shift(-1)       
 #%%
