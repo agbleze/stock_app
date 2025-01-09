@@ -1230,12 +1230,12 @@ import datetime
 
 #%%
 ticker_symbol = 'AAPL'  # Example: Apple Inc.
-start_date = '2024-12-01'
+start_date = '2025-01-05'
 end_date = '2023-01-02'
 
 
 #%%
-data = yf.download("LAES", start=start_date, interval='2m')
+data = yf.download("LAES", start=start_date, interval='1m')
 #data.head()
 
 
@@ -1243,7 +1243,78 @@ data = yf.download("LAES", start=start_date, interval='2m')
 
 data.tail()
 
+#%%
 
+data = data.dropna()
+
+
+#%%
+data_8 = data[data.index.day == 8]
+data_8["pct_change"] = data_8["Close"].pct_change()
+data_8["pct_change"] = round(data_8["pct_change"]*100, 2)
+
+#%%
+
+data_8["diff"] = data_8["Close"].diff()
+
+#%%
+data_8["status_rise"] = data_8["diff"].map(lambda x: x > 0)
+
+
+#%%
+
+data_8["color"] = ["red" if x == False else "green" for x in data_8[["status_rise"]].values]
+
+
+def calculate_price_change(data, col="Close"):
+    data["pct_change"] = data[col].pct_change()
+    data["pct_change"] = round(data["pct_change"]*100, 2)
+    data["diff"] = data[col].diff()
+    data["status_rise"] = data["diff"].map(lambda x: x > 0)
+    data["color"] = ["red" if x == False else "green" for x in data[["status_rise"]].values]
+    return data
+
+
+#%%
+def plot_column_chart(data, y="Close", hover_data=["pct_change"],
+                      marker_color="color"
+                      ):
+    fig = px.bar(data_frame=data, x=data.index, y=y,
+                template="plotly_dark",
+                #width=1800,
+                height=800,
+                hover_data=hover_data
+                # color="status_rise"
+                )
+    fig.update_traces(marker_color=data[marker_color].to_list())
+    return fig
+
+
+
+#%%
+data_8 = calculate_price_change(data=data_8)
+plot_column_chart(data=data_8)
+
+#%%
+data_6 =  data[data.index.day == 6]
+
+data_6[data_6["Close"]==data_6["Close"].min()]
+
+#%%
+data_7 =  data[data.index.day == 7]
+
+data_7[data_7["Close"]==data_7["Close"].min()]
+
+#%%
+data_8 =  data[data.index.day == 8]
+
+data_8[data_8["Close"]==data_8["Close"].min()]
+
+
+
+#%%
+
+data.describe()
 #%%
 (97/100)*5.16
 #%%
