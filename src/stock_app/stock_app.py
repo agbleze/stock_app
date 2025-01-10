@@ -1149,11 +1149,61 @@ laes_close_lwr_thn_opn = calculate_prob_close_lower_thn_open(df=laes)
 
 #%%
 
-laes_close_lwr_thn_opn
+laes_close_open_loss = laes_close_lwr_thn_opn["loss_percent_list"]
+
+#%%
+max(laes_close_open_loss)
+
+
+len(laes_close_open_loss)
+
+#%%
+# by determing the how low stock usually closes below the opening when ever 
+# the close is lower than the opening, a horizontal threshold can be determined
+# for entry and exit. From the analysis below, there is about 84% probability 
+# that stock price will close 10% or less lower than it opens in scenarios when the close price 
+# is lower than open price. This suggests 
+# that when a stock opens and the price is falls more than 10%, we could buy and take 
+# at least 1% proft in 84% of such cases. In other words, when the price falls to 11% + 
+# below open price there is about 84% probability that we will successful scalp 
+# at least 1% profit by close price (when stock closes)
+
+
+
+# In the case of price falling to 16% + lower,probability increases to 95%
+# For 5% lower,probability decreases to 53%
+
+
+len([x for x in laes_close_open_loss if x >= -3]) / len(laes_close_open_loss)
+
+
+#%%
+"""
+What is the usual difference between the open price and low price daily
+"""
 
 #%%
 
+def open_low_diff(df):
+    df["open_low_pct_change"] = ((df["Open"] - df["Low"])/df["Open"]) * 100
+    return df
 
+
+#%%
+
+laes = open_low_diff(df=laes)
+
+
+#%%
+laes["open_low_pct_change"].max()
+
+#%%
+(101 / 100) * 5.89
+#%%
+px.histogram(data_frame=laes["open_low_pct_change"])
+#%%
+
+laes.drop(columns="open_close_pct_change", inplace=True)
 #%%
 """
 what is the proba that when close is lower than open, next day 
@@ -1169,6 +1219,28 @@ this needs to be based on analysis of the typical difference between open and
 close particularly when it closes lower than open
 """
 
+
+
+#%%
+
+(85 / 100) * 5.48
+
+
+#%%
+
+(3.25 / 4.98) * 100
+
+#%%
+
+(89/100)*5.48
+
+#%%
+
+(5.28 / 4.482) * 100
+
+#%%
+
+(6.84/7.88) * 100
 
 
 #%%
@@ -1199,6 +1271,8 @@ Eg: Buy at 7.90 and sell at 8.02
 for LAES, it has been be observed that at about 14:00 there is a price spike up 
 and some few minutes prior to that is downward spiral. 
 Strategy: time and buy during the downward spiral and take profit from 14:00 to 15:00
+
+REPEATED AGAIN ON 2024-01-10
 
 Trading zone for entry and exit is from 13:00 to 15:00
 
@@ -1250,21 +1324,6 @@ data = data.dropna()
 
 #%%
 data_8 = data[data.index.day == 8]
-data_8["pct_change"] = data_8["Close"].pct_change()
-data_8["pct_change"] = round(data_8["pct_change"]*100, 2)
-
-#%%
-
-data_8["diff"] = data_8["Close"].diff()
-
-#%%
-data_8["status_rise"] = data_8["diff"].map(lambda x: x > 0)
-
-
-#%%
-
-data_8["color"] = ["red" if x == False else "green" for x in data_8[["status_rise"]].values]
-
 
 def calculate_price_change(data, col="Close"):
     data["pct_change"] = data[col].pct_change()
@@ -1275,7 +1334,6 @@ def calculate_price_change(data, col="Close"):
     return data
 
 
-#%%
 def plot_column_chart(data, y="Close", hover_data=["pct_change"],
                       marker_color="color"
                       ):
@@ -1310,7 +1368,9 @@ data_8 =  data[data.index.day == 8]
 
 data_8[data_8["Close"]==data_8["Close"].min()]
 
+#%%
 
+data_8["Volume"].cumsum().is_monotonic_increasing
 
 #%%
 
@@ -1322,3 +1382,56 @@ dwave[["Close"]].shift(-1)
 #%%
 def calculate_profit(df, profit_percent):
     pass
+
+
+#%%
+
+from afterhours.afterhours import AfterHours
+
+
+# %%
+import yfinance as yf
+
+# Example: Apple Inc.
+ticker = 'LAES'
+stock = yf.Ticker(ticker)
+
+# Download data including extended hours
+hist = stock.history(period='1d', interval='1m', prepost=True)
+print(hist)
+
+
+
+
+
+# %%
+import yfinance as yf
+import pandas as pd
+
+# Example: Apple Inc.
+ticker = 'LAES'
+stock = yf.Ticker(ticker)
+_date = "2025-01-10"
+# Download data including extended hours
+hist = stock.history(period='5d', interval='1m', prepost=True)
+
+# Convert the index to a column for easier filtering
+hist = hist.reset_index()
+
+# Define market open and close times
+market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+
+# Filter pre-market data
+pre_market_data = hist[hist['Datetime'].dt.time < market_open]
+
+# Filter after-hours data
+after_hours_data = hist[hist['Datetime'].dt.time > market_close]
+
+print("Pre-market data:")
+print(pre_market_data.head())
+
+print("\nAfter-hours data:")
+print(after_hours_data.head())
+
+# %%
