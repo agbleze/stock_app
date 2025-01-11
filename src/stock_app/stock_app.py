@@ -1174,12 +1174,29 @@ len(laes_close_open_loss)
 # For 5% lower,probability decreases to 53%
 
 
-len([x for x in laes_close_open_loss if x >= -3]) / len(laes_close_open_loss)
+len([x for x in laes_close_open_loss if x > -5]) / len(laes_close_open_loss)
 
+
+#%%
+
+len([x for x in laes_close_open_loss if (x <= -1) and (x >= -15)]) / len(laes_close_open_loss)
 
 #%%
 """
 What is the usual difference between the open price and low price daily
+
+
+
+if the price falls to a certain lower percentage, what is the probability of recovering 
+or closing at least at 1% profit
+
+
+write an algo for the early stage of market open
+
+
+will probable need multiple algorithms for same stock
+
+visualize the stock price to know and understand what happens mostly
 """
 
 #%%
@@ -1195,15 +1212,73 @@ laes = open_low_diff(df=laes)
 
 
 #%%
-laes["open_low_pct_change"].max()
+int(laes["open_low_pct_change"].max())
+
+
+#%%
+from collections import Counter
+
+#%%
+open_low_pct_int = [int(val) for val in laes["open_low_pct_change"].values]
+
+#%%
+open_low_pct_count = Counter(open_low_pct_int)
+
+
+#%%
+
+laes[laes["open_low_pct_change"] < 1]
+#%%
+sorted(open_low_pct_count)
+
+#%%
+high_eql_open_row_indices = []
+for row_index, row_data in laes.iterrows():
+    if row_data["High"] == row_data["Open"]:
+        high_eql_open_row_indices.append(row_index)
+
+
+#%%
+
+high_eql_low_df = laes[laes.index.isin(high_eql_open_row_indices)]
+
+#%%
+
+# probability of high == open
+
+(len(high_eql_low_df)/len(laes)) * 100
+
+#%%
+
+
+#%%
+
+laes[laes["Volume"] == laes["Volume"].min()]
+
+#%%
+
+curr_price = 100
+
+((100-10)/100) *  curr_price
+
+#%%
+((100-5)/100) * curr_price
 
 #%%
 (101 / 100) * 5.89
 #%%
 px.histogram(data_frame=laes["open_low_pct_change"])
-#%%
 
-laes.drop(columns="open_close_pct_change", inplace=True)
+#%% TODO:
+"""
+Anlyze scenario for open == low and find probability of occurrence
+
+
+Backtesting of algorithms
+"""
+
+
+
 #%%
 """
 what is the proba that when close is lower than open, next day 
@@ -1228,7 +1303,9 @@ close particularly when it closes lower than open
 
 #%%
 
-(3.25 / 4.98) * 100
+(5.32 / 5.48) * 100
+
+
 
 #%%
 
@@ -1433,5 +1510,35 @@ print(pre_market_data.head())
 
 print("\nAfter-hours data:")
 print(after_hours_data.head())
+
+
+
+
+
+# %%
+import pandas_market_calendars as mcal
+import pandas as pd
+
+# Define the year
+year = 2025
+
+# Get the market calendar for the New York Stock Exchange (NYSE)
+nyse = mcal.get_calendar('NYSE')
+
+# Define the date range for the given year
+start_date = f'{year}-01-01'
+end_date = f'{year}-12-31'
+
+# Get the trading schedule for the given year
+schedule = nyse.schedule(start_date=start_date, end_date=end_date)
+
+# Extract the trading dates
+trading_dates = schedule.index
+
+# Convert to a list of dates
+trading_dates_list = trading_dates.tolist()
+
+# Print the trading dates
+print(trading_dates_list)
 
 # %%
