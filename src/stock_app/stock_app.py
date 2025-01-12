@@ -1197,6 +1197,13 @@ write an algo for the early stage of market open
 will probable need multiple algorithms for same stock
 
 visualize the stock price to know and understand what happens mostly
+
+
+
+
+# another algorithm
+-- current high, low and close are higher than previous than buy at close and 
+sell next day at profit
 """
 
 #%%
@@ -1269,15 +1276,45 @@ curr_price = 100
 #%%
 px.histogram(data_frame=laes["open_low_pct_change"])
 
-#%% TODO:
+#%% 
+#%%  Anlyze scenario for open == low and find probability of occurrence
+
+laes_open_eq_low = laes[laes["Open"]==laes["Low"]]
+
+(len(laes_open_eq_low) / len(laes)) * 100
+
+#%%
 """
-Anlyze scenario for open == low and find probability of occurrence
+For laes, it is observed that the probability of open == low is about 6.57%.
 
-
-Backtesting of algorithms
+This scenario will not be triggered for trading if we use the technique of 
+going long only after a % decline in open price.
 """
 
+#%%
 
+calculate_prob_close_lower_thn_open(df=laes_open_eq_low)
+
+#%%
+def close_open_diff(df):
+    df["close_open_pct_change"] = ((df["Close"] - df["Open"])/df["Open"]) * 100
+    return df
+
+#%%
+close_open_diff(df=laes_open_eq_low)
+
+
+#%%
+"""
+LAES
+For the scenario of Open==Low, it is observed that there is 77.77% chance thate the Close price
+will more than 3% higher than the Open price.
+
+This is for trendy scenarios where price keep rising and never falls below the Open price.
+When price falls less than or at most 3% higher than the Open price, buying will provide 
+a 77.77% chance of making a profit at Close price.
+"""
+(len(laes_open_eq_low[laes_open_eq_low["close_open_pct_change"]>3]) / len(laes_open_eq_low))*100
 
 #%%
 """
