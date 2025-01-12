@@ -1245,6 +1245,19 @@ less__3[less__3["low_open_pct_change"] > int(-10)]
 laes_int_low_open_pct_change = [int(x) for x in laes["low_open_pct_change"].values.tolist()]
 laes["int_low_open_pct_change"] = laes_int_low_open_pct_change
 
+# this analysis was not concluded because it was realized that High can occur before low
+# hence designated for analysis
+
+
+#%% TODO: Analyze edge case of O - H- LC  where by High occur before low
+# what is the probability of it happening
+
+
+#%%
+"""
+It was observed that when a lower High occurs buying at Close and 
+selling next day is not profitable. This needs further investigation
+"""
 
 #%%
 def high_low_diff(df):
@@ -1257,6 +1270,9 @@ high_low_diff(laes)
 laes[laes["int_low_open_pct_change"] == -3]["High"].mean() - laes[laes["int_low_open_pct_change"] == -3]["Low"].mean() 
 
 
+#%%
+
+(4.98/7.15)*100
 #%%
 high_eql_open_row_indices = []
 for row_index, row_data in laes.iterrows():
