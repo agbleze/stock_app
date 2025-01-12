@@ -1199,14 +1199,9 @@ will probable need multiple algorithms for same stock
 visualize the stock price to know and understand what happens mostly
 
 
-
-
-# another algorithm
--- current high, low and close are higher than previous than buy at close and 
-sell next day at profit
 """
 
-#%%  DEBUGGING IS REQUIRED FOR THIS function. wrong results
+#%%  
 def calculate_next_day_profit_from_curr_close(df):
     """current high, low and close are higher than previous than buy at close and 
         sell next day at profit
@@ -1222,20 +1217,20 @@ def calculate_next_day_profit_from_curr_close(df):
     all_comp = 0
     profit_percent = 0
     profit_percent_scores = []
-    for rowdata_index, rowdata in df.iterrows():
+    for rowdata_index, row_data in df.iterrows():
         curr_high = row_data["High"]
         curr_low = row_data["Low"]
         curr_close = row_data["Close"]
         
-        curr_close_price = rowdata["Close"]
-        if rowdata_index != df.tail(1).index:
+        curr_close_price = row_data["Close"]
+        if rowdata_index != df.index[-1]:
             previous_day_high = df[df.index <= rowdata_index].tail(2).iloc[0]["High"]
             previous_day_low = df[df.index <= rowdata_index].tail(2).iloc[0]["Low"]
             previous_day_close = df[df.index <= rowdata_index].tail(2).iloc[0]["Close"]
             
-            if ((curr_high > previous_day_high)): # and (curr_low > previous_day_low) 
-                #and (curr_close > previous_day_close)
-                #):
+            if ((curr_high > previous_day_high) and (curr_low > previous_day_low) 
+                and (curr_close > previous_day_close)
+                ):
                 
                 nextday_high = df[df.index >= rowdata_index].iloc[1]["High"]
                 if nextday_high > curr_close:
@@ -1266,6 +1261,15 @@ def calculate_next_day_profit_from_curr_close(df):
 #%%
 
 calculate_next_day_profit_from_curr_close(laes)
+
+#%% TODO: For the calculate_next_day_profit_from_curr_close results
+# explore the samples that failed. 
+# Find by how much close was lower than the next day High so that becomes 
+# a suggested % reduction of Close to enter the market in the After hours, Overnight 
+# and Premarket
+
+
+#%%
 #%%
 
 def low_open_diff(df):
