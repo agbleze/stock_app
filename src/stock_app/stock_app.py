@@ -1208,35 +1208,54 @@ sell next day at profit
 
 #%%
 
-def open_low_diff(df):
-    df["open_low_pct_change"] = ((df["Open"] - df["Low"])/df["Open"]) * 100
+def low_open_diff(df):
+    df["low_open_pct_change"] = ((df["Low"] - df["Open"])/df["Open"]) * 100
     return df
 
 
 #%%
 
-laes = open_low_diff(df=laes)
+laes = low_open_diff(df=laes)
 
 
 #%%
-int(laes["open_low_pct_change"].max())
+int(laes["low_open_pct_change"].min())
 
 
 #%%
 from collections import Counter
 
 #%%
-open_low_pct_int = [int(val) for val in laes["open_low_pct_change"].values]
+low_open_pct_int = [int(val) for val in laes["low_open_pct_change"].values]
 
 #%%
-open_low_pct_count = Counter(open_low_pct_int)
+low_open_pct_int = Counter(low_open_pct_int)
 
 
 #%%
 
-laes[laes["open_low_pct_change"] < 1]
+laes[laes["low_open_pct_change"] < -1]
 #%%
-sorted(open_low_pct_count)
+# TODO: Analyze how high price rises after hitting -3% from open price
+
+less__3 = laes[(laes["low_open_pct_change"] < int(-3))]
+
+less__3[less__3["low_open_pct_change"] > int(-10)]
+
+laes_int_low_open_pct_change = [int(x) for x in laes["low_open_pct_change"].values.tolist()]
+laes["int_low_open_pct_change"] = laes_int_low_open_pct_change
+
+
+#%%
+def high_low_diff(df):
+    df["high_low_pct_change"] = ((df["High"] - df["Low"])/df["Low"]) * 100
+    return df
+
+
+high_low_diff(laes)
+#%%
+laes[laes["int_low_open_pct_change"] == -3]["High"].mean() - laes[laes["int_low_open_pct_change"] == -3]["Low"].mean() 
+
 
 #%%
 high_eql_open_row_indices = []
@@ -1274,7 +1293,7 @@ curr_price = 100
 #%%
 (101 / 100) * 5.89
 #%%
-px.histogram(data_frame=laes["open_low_pct_change"])
+px.histogram(data_frame=laes["low_open_pct_change"])
 
 #%% 
 #%%  Anlyze scenario for open == low and find probability of occurrence
@@ -1396,7 +1415,7 @@ Trading zone for entry and exit is from 13:00 to 15:00
 #%%
 """
 
-For LAES, it is observed that most of the volume occurs priori to 17:00
+For LAES, it is observed that most of the volume occurs prior to 17:00
 
 After 17:00, price action slows down significantly and can only be used to scalping of maximum 3%.
 A safe and recommended is 1%.
