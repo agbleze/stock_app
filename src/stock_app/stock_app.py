@@ -1428,6 +1428,9 @@ and sell at 1% profit
 
 this needs to be based on analysis of the typical difference between open and 
 close particularly when it closes lower than open
+
+
+# TODO: investigate setting the entry based on whether a new low as formed
 """
 
 
