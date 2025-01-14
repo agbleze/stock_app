@@ -1688,3 +1688,16 @@ trading_dates_list = trading_dates.tolist()
 print(trading_dates_list)
 
 # %%
+import yfinance as yf
+import pandas as pd
+
+# Create a ticker object for EUR/USD
+ticker = yf.Ticker("EURUSD=X")
+
+# Download historical data
+data = ticker.history(period="5d", interval="1m")
+
+# Display the data
+print(data.head())
+
+# %%
