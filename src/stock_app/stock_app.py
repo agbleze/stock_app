@@ -10,7 +10,7 @@ import joblib
 import functools
 import plotly.express as px
 import dash_trich_components as dtc
-from style import page_style
+#from .style import page_style
 import yfinance as yf
 from pandas.core.indexes.multi import MultiIndex
 import functools
@@ -20,7 +20,7 @@ import plotly.graph_objects as go
 from prophet.serialize import model_to_json, model_from_json
 import json
 import numpy as np
-from model_trainer import Model_Trainer, Transformer, plot_loss, expand_dates_excluding_weekends
+#from model_trainer import Model_Trainer, Transformer, plot_loss, expand_dates_excluding_weekends
 import tensorflow as tf
 
 card_icon = {
@@ -961,30 +961,6 @@ if __name__ == "__main__":
 
 
 
-#%%
-
-from pystocktopus import Stock
-
-def get_ticker(company_name):
-    stock = Stock()  # Create an instance of the Stock class
-    companies = stock.find_tickers()  # Get a list of all tickers and their companies
-    for company in companies:
-        if company_name.lower() in company['name'].lower():
-            return company['symbol']
-    return None
-
-# Example usage
-company_name = "Apple"
-ticker = get_ticker(company_name)
-print(f"The ticker for {company_name} is: {ticker}")
-
-# %%
-from pytickersymbols import PyTickerSymbols
-
-stock_data = PyTickerSymbols()
-countries = stock_data.get_all_countries()
-indices = stock_data.get_all_indices()
-industries = stock_data.get_all_industries()
 # %%
 (107/100)*7.6
 
@@ -1037,7 +1013,7 @@ def calculate_prob(df, type="close lower than next day High", cal_profit_percent
     for rowdata_index, rowdata in df.iterrows():
         #if type == "close lower than next day High":
         curr_close_price = rowdata["Close"]
-        if rowdata_index != df.tail(1).index:
+        if rowdata_index != df.index[-1]:
             nextday_high = df[df.index >= rowdata_index].iloc[1]["High"]
             if nextday_high > curr_close_price:
                 higher_high += 1
@@ -1063,8 +1039,16 @@ def calculate_prob(df, type="close lower than next day High", cal_profit_percent
     
 
 #%%
-calculate_prob(dwave)
-   
+dwave_close_lower_than_nextday_high = calculate_prob(dwave)
+
+dwave_close_lower_than_nextday_high["probability"]
+
+#%%
+pft_score = dwave_close_lower_than_nextday_high["profit_percent_scores"]
+
+more_thn_1 = [pft for pft in pft_score if pft > 1]
+
+(len(more_thn_1) / dwave_close_lower_than_nextday_high["total_instances"]) * 100
 #%%
 
 bigbear = download_stock_price(stock_ticker="BBAI")
@@ -1203,7 +1187,7 @@ visualize the stock price to know and understand what happens mostly
 
 #%%  
 def calculate_next_day_profit_from_curr_close(df):
-    """current high, low and close are higher than previous than buy at close and 
+    """if current high, low and close are higher than previous than buy at close and 
         sell next day at profit
 
     Args:
@@ -1264,10 +1248,17 @@ calculate_next_day_profit_from_curr_close(laes)
 
 #%% TODO: For the calculate_next_day_profit_from_curr_close results
 # explore the samples that failed. 
-# Find by how much close was lower than the next day High so that becomes 
+# Find by how much Close was lower than the next day High so that becomes 
 # a suggested % reduction of Close to enter the market in the After hours, Overnight 
 # and Premarket
 
+
+"""
+it has been observed that when lower High are being observed, it is better 
+to set a lower draw-down for entry.
+
+Moreover, buying below the daily low is a better way.
+"""
 
 #%%
 #%%
@@ -1353,9 +1344,6 @@ high_eql_low_df = laes[laes.index.isin(high_eql_open_row_indices)]
 # probability of high == open
 
 (len(high_eql_low_df)/len(laes)) * 100
-
-#%%
-
 
 #%%
 
@@ -1548,6 +1536,8 @@ data = data.dropna()
 #%%
 data_8 = data[data.index.day == 8]
 
+
+#%%
 def calculate_price_change(data, col="Close"):
     data["pct_change"] = data[col].pct_change()
     data["pct_change"] = round(data["pct_change"]*100, 2)
@@ -1695,9 +1685,24 @@ import pandas as pd
 ticker = yf.Ticker("EURUSD=X")
 
 # Download historical data
-data = ticker.history(period="5d", interval="1m")
+#data = ticker.history(period="5d", interval="1m")
 
+data = ticker.history()
 # Display the data
-print(data.head())
+#print(data.head())
 
+# %%
+data
+# %%
+calculate_next_day_profit_from_curr_close(data)
+# %%
+close_open_diff(data)
+# %%
+data.tail(20)
+# %%
+low_open_diff(data)
+# %%
+(4.45/4.99)*100
+# %%
+(89/100)*4.99
 # %%
