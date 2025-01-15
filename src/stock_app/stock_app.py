@@ -1282,8 +1282,6 @@ from collections import Counter
 
 #%%
 low_open_pct_int = [int(val) for val in laes["low_open_pct_change"].values]
-
-#%%
 low_open_pct_int = Counter(low_open_pct_int)
 
 
@@ -1559,6 +1557,79 @@ def plot_column_chart(data, y="Close", hover_data=["pct_change"],
                 )
     fig.update_traces(marker_color=data[marker_color].to_list())
     return fig
+
+#%%
+
+ionq_df = download_stock_price(stock_ticker="IONQ")
+
+ionq_res = calculate_prob(ionq_df)
+
+#%%
+
+ionq_res["probability"]
+
+#%%
+
+pft_score = ionq_res["profit_percent_scores"]
+more_thn_1 = [pft for pft in pft_score if pft > 1]
+(len(more_thn_1) / ionq_res["total_instances"]) * 100
+
+
+#%%
+
+ionq_close_lwr_thn_opn = calculate_prob_close_lower_thn_open(df=ionq_df)
+
+ionq_close_lwr_thn_opn["probability"]
+
+#%%
+low_open_diff(df=ionq_df)
+ionq_low_open_pct_int = [int(val) for val in ionq_df["low_open_pct_change"].values]
+ionq_low_open_pct_int = Counter(ionq_low_open_pct_int)
+
+#%%
+px.histogram(data_frame=ionq_df["low_open_pct_change"])
+
+#%%
+
+applovin_df = download_stock_price(stock_ticker="APP")
+
+applovin_res = calculate_prob(applovin_df)
+
+#%%
+
+applovin_res["probability"]
+
+#%%
+
+pft_score = applovin_res["profit_percent_scores"]
+more_thn_1 = [pft for pft in pft_score if pft > 1]
+(len(more_thn_1) / applovin_res["total_instances"]) * 100
+
+
+#%%
+
+applovin_close_lwr_thn_opn = calculate_prob_close_lower_thn_open(df=applovin_df)
+
+applovin_close_lwr_thn_opn["probability"]
+
+#%%
+low_open_diff(df=applovin_df)
+applovin_low_open_pct_int = [int(val) for val in applovin_df["low_open_pct_change"].values]
+applovin_low_open_pct_int = Counter(applovin_low_open_pct_int)
+
+#%%
+px.histogram(data_frame=applovin_df["low_open_pct_change"])
+
+
+#%%
+
+close_open_diff(df=applovin_df)
+
+#%%
+calculate_next_day_profit_from_curr_close()
+#%% 
+px.histogram(data_frame=applovin_df["close_open_pct_change"])
+
 
 
 
