@@ -486,7 +486,6 @@ def create_portfolio_graphs(company_ticker):
                     title=f"{company} Close price",
                     )
         stock_plot = dcc.Graph(figure=fig)
-        # TODO: calculate stock price change from first and last dates
             
         portfolio_graph = dbc.Col(id=f"id_{stock_ticker}", width=6,children=[stock_plot])
         portfolio_graphs.append(portfolio_graph)
@@ -896,50 +895,7 @@ def make_prediction(start_date, end_date, stock_ticker, model_name,
             # mod_cls.timeseries_evaluation_metrics(y_true=test_df["Close"].to_list(),
             #                                     y_pred=predicted_results.tolist()[0]
             #                                     )
-
-            
-            
-            
-              
-#TODO: format predictions and plot
-# store train config required during prediction like window size and use this for prediction
-
-# TODO: add validation of model config input
-
-# @functools.lru_cache(maxsize=None)
-# @app.callback(Output(component_id="page_content", component_property="children"),
-#               Input(component_id="id_portfolio", component_property="n_clicks_timestamp")
-#             )
-# def create_portfolio_view(id_portfolio_click):
-#     ctx = dash.callback_context
-#     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    
-#     if button_id != 'id_submit_stock_request':
-#         return  dash.no_update
-        
-#     if button_id == 'id_portfolio':
-#         head_component = [dbc.Row(dcc.DatePickerRange(id="id_portfolio_date"))]
-#         portfolio_graphs = []
-#         for stock_ticker in company_ticker:
-#             data = yf.download(stock_ticker)
-#             if isinstance(data.columns, MultiIndex):
-#                 data.columns = data.columns.droplevel(1)
-#             fig = px.line(data_frame=data, y="Close", 
-#                         template="plotly_dark",
-#                         title=f"{stock_ticker} Close price",
-#                         )
-#             stock_plot = dcc.Graph(figure=fig)
-#             # TODO: calculate stock price change from first and last dates
-                
-#             portfolio_graph = dbc.Col(id=f"id_{stock_ticker}", width=2,children=[stock_plot])
-#             portfolio_graphs.append(portfolio_graph)
-#         if portfolio_graphs:
-#             head_component.append(dbc.Row(children=portfolio_graphs))
-#         else:
-#             print(f"No portfolio graphs created")
-#         return html.Div(children=head_component)
-            
-    
+  
 
 # TODO: Portfolio update
 # get all portfolio ticker, download data, create graph and show % change for each
@@ -951,15 +907,8 @@ def make_prediction(start_date, end_date, stock_ticker, model_name,
 # TODO: performance calculator similar to that on SAP wensite
 # https://www.sap.com/investors/en/stock.html
 
-
-#%% TODO. Add off canvas to sidebar menu to it can disapper when a buthon is clicked
-
 if __name__ == "__main__":
     app.run_server()
-# TODO
-# Add ticker selection option
-
-
 
 # %%
 (107/100)*7.6
@@ -1201,6 +1150,7 @@ def calculate_next_day_profit_from_curr_close(df):
     all_comp = 0
     profit_percent = 0
     profit_percent_scores = []
+    curr_closeprice_higher_thn_nextday_high_samples = []
     for rowdata_index, row_data in df.iterrows():
         curr_high = row_data["High"]
         curr_low = row_data["Low"]
@@ -1227,6 +1177,8 @@ def calculate_next_day_profit_from_curr_close(df):
                     all_comp += 1
                 else:
                     all_comp += 1
+                    curr_and_nextday_df = df[df.index >= rowdata_index].iloc[0:2]
+                    curr_closeprice_higher_thn_nextday_high_samples.append(curr_and_nextday_df)
         else:
             print(f"last day: {rowdata_index}")
         #break 
@@ -1239,13 +1191,20 @@ def calculate_next_day_profit_from_curr_close(df):
             "profit_percent": profit_percent,
             "profit_percent_scores": profit_percent_scores,
             "total_instances": all_comp,
-            "num_observations": higher_high
+            "num_observations": higher_high,
+            "curr_closeprice_higher_thn_nextday_high_samples": curr_closeprice_higher_thn_nextday_high_samples
             }
     
 #%%
 
-calculate_next_day_profit_from_curr_close(laes)
+laes_nextday_profit_res = calculate_next_day_profit_from_curr_close(laes)
 
+
+#%%
+laes_nextday_profit_res["probability"]
+
+#%%
+laes_nextday_profit_res["curr_closeprice_higher_thn_nextday_high_samples"][3]
 #%% TODO: For the calculate_next_day_profit_from_curr_close results
 # explore the samples that failed. 
 # Find by how much Close was lower than the next day High so that becomes 
@@ -1423,29 +1382,6 @@ close particularly when it closes lower than open
 
 #%%
 
-(85 / 100) * 5.48
-
-
-#%%
-
-(5.32 / 5.48) * 100
-
-
-
-#%%
-
-(89/100)*5.48
-
-#%%
-
-(5.28 / 4.482) * 100
-
-#%%
-
-(6.84/7.88) * 100
-
-#%%
-
 nvda
 low_open_diff(nvda)
 
@@ -1455,15 +1391,6 @@ nvda.tail(50)
 #%%
 
 from dataclasses import dataclass
-
-#%%
-
-
-(97/100)*5.07
-#%%
-
-(7.02/6.90) * 100
-
 
 #%%
 """
@@ -1626,11 +1553,16 @@ px.histogram(data_frame=applovin_df["low_open_pct_change"])
 close_open_diff(df=applovin_df)
 
 #%%
-calculate_next_day_profit_from_curr_close()
+calculate_next_day_profit_from_curr_close(applovin_df)
+
+#%%
+calculate_price_change(applovin_df)
 #%% 
 px.histogram(data_frame=applovin_df["close_open_pct_change"])
 
-
+#%%
+plot_column_chart(applovin_df)
+#%% TODO.: use linear regression for prediction of close_open_pct_change
 
 
 #%%
@@ -1669,9 +1601,58 @@ def calculate_profit(df, profit_percent):
 
 
 #%%
+import math
 
-from afterhours.afterhours import AfterHours
+def days_to_double(principal, daily_rate):
+    """
+    Calculate the number of days required to double the principal with a given daily compounded interest rate.
+    
+    Parameters:
+    - principal (float): The initial principal amount.
+    - daily_rate (float): The daily interest rate (e.g., 0.01 for 1%).
+    
+    Returns:
+    - int: The number of days required to double the principal.
+    """
+    # Calculate the target amount (double the principal)
+    target_amount = principal * 2
+    
+    # Calculate the number of days required to double the principal
+    days = math.log(2) / math.log(1 + daily_rate)
+    
+    return int(days)
 
+# Example usage
+principal = 1000
+daily_rate = 0.01  # 1% daily interest rate
+required_days = days_to_double(principal, daily_rate)
+print(f"Number of days required to double ${principal} with a daily interest rate of {daily_rate*100}%: {required_days} days")
+
+#%%
+import math
+def compounded_amount(principal, daily_rate, num_trades):
+    """
+    Calculate the amount of money accumulated after a given number of trades with daily compounded interest.
+    
+    Parameters:
+    - principal (float): The initial principal amount.
+    - daily_rate (float): The daily interest rate (e.g., 0.01 for 1%).
+    - num_trades (int): The number of trades (days) over which the interest is compounded.
+    
+    Returns:
+    - float: The amount of money accumulated after the given number of trades.
+    """
+    # Calculate the amount of money accumulated
+    accumulated_amount = principal * (1 + daily_rate) ** num_trades
+    
+    return accumulated_amount
+
+#%% Example usage
+principal = 1000
+daily_rate = 0.01  # 1% daily interest rate
+num_trades = 252  # Number of trades
+accumulated_amount = compounded_amount(principal, daily_rate, num_trades)
+print(f"Accumulated amount after {num_trades} trades with a daily interest rate of {daily_rate*100}%: ${accumulated_amount:.2f}")
 
 # %%
 import yfinance as yf
@@ -1777,3 +1758,19 @@ low_open_diff(data)
 # %%
 (89/100)*4.99
 # %%
+
+
+
+
+
+
+"""
+well, I asses the 1% compounding interest (1 ci) to better 
+than 3% profit set aside (3 ps) because earning 1% profit daily 
+on the stock market is more achieveable than 3% because my strategy 
+makes it easier to get 1% scalp than 3% due to the longer exposure 
+than which can to to a reversal before 3% is reached and loss
+"""
+
+
+
