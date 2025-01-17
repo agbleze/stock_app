@@ -1265,6 +1265,83 @@ laes["int_low_open_pct_change"] = laes_int_low_open_pct_change
 # what is the probability of it happening
 
 
+import pandas_market_calendars as mcal
+import pandas as pd
+def get_trading_dates(year, exchange="NYSE"):
+    stock_exchange = mcal.get_calendar(exchange)
+    start_date = f'{year}-01-01'
+    end_date = f'{year}-12-31'
+    schedule = stock_exchange.schedule(start_date=start_date, end_date=end_date)
+    trading_dates = schedule.index
+    trading_dates_list = trading_dates.tolist()
+    return trading_dates_list
+
+
+#%%
+trading_dates = get_trading_dates(year=2024)
+
+#%%
+def O_H_LC(df, trading_dates):
+    pass
+    # check if timestamp for high is before L and L and Close are same time
+
+
+import yfinance as yf
+
+# Example: Apple Inc.
+ticker = 'LAES'
+stock = yf.Ticker(ticker)
+
+#%% Download data including extended hours
+hist = stock.history(start="2024-01-16", end="2024-01-17", period='1d',
+                     interval='1m', prepost=False)
+
+#%%
+hist[hist["High"]==hist["High"].max()].index
+
+#%%
+hist[hist["Low"]==hist["Low"].min()].index
+
+
+
+#%%
+
+
+#%%
+import nasdaqdatalink
+nasdaqdatalink.ApiConfig.api_key = nasdaq_api
+mydata = nasdaqdatalink.get("FRED/GDP")
+#%%  Analysis of worst case scenario of O-H-LC
+close_eq_low = []
+
+for row_index, row_data in laes.iterrows():
+    if row_data["Low"]==row_data["Close"]:
+        close_eq_low.append(row_index)
+        
+#%%
+
+
+close_eq_low 
+
+#%%
+
+laes[laes.index == close_eq_low[1]] 
+
+#%% probability of the worst case where close price == low is about 4.5%
+
+(len(close_eq_low)/(len(laes))) * 100    
+ 
+#%%
+stock = yf.Ticker(ticker)
+start = str(close_eq_low[-5].date())
+end = str((close_eq_low[-5] + pd.Timedelta(days=1)).date())
+laes_close_eq_low = stock.history(start="2024-12-18",
+                                  end="2024-12-19",
+                                  period='1d',
+                                interval='1m', 
+                                prepost=False
+                                )
+       
 #%%
 """
 It was observed that when a lower High occurs buying at Close and 
@@ -1662,9 +1739,14 @@ ticker = 'LAES'
 stock = yf.Ticker(ticker)
 
 # Download data including extended hours
-hist = stock.history(period='1d', interval='1m', prepost=True)
-print(hist)
+hist = stock.history(start="2025-01-16", end="2025-01-17", period='1d',
+                     interval='1m', prepost=False)
 
+#%%
+hist[hist["High"]==hist["High"].max()].index
+
+#%%
+hist[hist["Low"]==hist["Low"].min()].index
 
 
 
@@ -1704,30 +1786,6 @@ print(after_hours_data.head())
 
 
 # %%
-import pandas_market_calendars as mcal
-import pandas as pd
-
-# Define the year
-year = 2025
-
-# Get the market calendar for the New York Stock Exchange (NYSE)
-nyse = mcal.get_calendar('NYSE')
-
-# Define the date range for the given year
-start_date = f'{year}-01-01'
-end_date = f'{year}-12-31'
-
-# Get the trading schedule for the given year
-schedule = nyse.schedule(start_date=start_date, end_date=end_date)
-
-# Extract the trading dates
-trading_dates = schedule.index
-
-# Convert to a list of dates
-trading_dates_list = trading_dates.tolist()
-
-# Print the trading dates
-print(trading_dates_list)
 
 # %%
 import yfinance as yf
@@ -1759,11 +1817,100 @@ low_open_diff(data)
 (89/100)*4.99
 # %%
 
+import pandas as pd
+from alpha_vantage.foreignexchange import ForeignExchange
+import time
+
+# Replace 'YOUR_API_KEY' with your actual Alpha Vantage API key
+api_key = 'YOUR_API_KEY'
+fx = ForeignExchange(key=api_key)
+fx.
+def get_forex_data(base_currency, target_currency, outputsize='compact'):
+    data, _ = fx.get_currency_exchange_daily(
+        from_symbol=base_currency,
+        to_symbol=target_currency,
+        outputsize=outputsize
+    )
+    df = pd.DataFrame.from_dict(data, orient='index')
+    df.reset_index(inplace=True)
+    df.columns = ['date', 'open', 'high', 'low', 'close']
+    df['date'] = pd.to_datetime(df['date'])
+    df.sort_values('date', inplace=True)
+    return df
+
+# Define parameters
+base_currency = 'USD'
+target_currency = 'EUR'
+
+# Get forex data
+forex_data = get_forex_data(base_currency, target_currency, outputsize='full')
+
+# Save to CSV
+forex_data.to_csv('forex_data.csv', index=False)
+print('Forex data saved to forex_data.csv')
+
+#%%
+
+import pandas as pd
+import requests
+
+# Replace 'YOUR_API_KEY' with your actual Twelve Data API key
+api_key = 'YOUR_API_KEY'
+
+def get_forex_data(base_currency, target_currency, interval='1day', start_date='2021-01-01', end_date='2022-01-01'):
+    url = f'https://api.twelvedata.com/time_series?symbol={base_currency}/{target_currency}&interval={interval}&start_date={start_date}&end_date={end_date}&apikey={api_key}'
+    response = requests.get(url)
+    data = response.json()
+    if "values" in data:
+        df = pd.DataFrame(data['values'])
+        df['datetime'] = pd.to_datetime(df['datetime'])
+        df.sort_values('datetime', inplace=True)
+        return df[['datetime', 'open', 'high', 'low', 'close']]
+    else:
+        print('Error fetching data:', data.get('message', 'Unknown error'))
+        return pd.DataFrame()
+
+# Define parameters
+base_currency = 'USD'
+target_currency = 'EUR'
+start_date = '2021-01-01'
+end_date = '2022-01-01'
+
+# Get forex data
+forex_data = get_forex_data(base_currency, target_currency, start_date=start_date, end_date=end_date)
+
+# Save to CSV
+forex_data.to_csv('forex_data.csv', index=False)
+print('Forex data saved to forex_data.csv')
+#%%
+
+
+#%%
+
+import requests
+import pandas as pd
+
+# Replace with your IEX Cloud API key
+api_key = 'YOUR_API_KEY'
+symbol = 'AAPL'  # Replace with the desired stock symbol
+start_date = '2022-04-18'  # Specify the start date in 'YYYY-MM-DD' format
+
+url = f'https://cloud.iexapis.com/stable/stock/{symbol}/chart/date/{start_date.replace("-", "")}?chartByDay=true&token={api_key}'
+
+response = requests.get(url)
+data = response.json()
+
+# Convert the data to a DataFrame
+df = pd.DataFrame(data)
+df['dateTime'] = pd.to_datetime(df['date'] + ' ' + df['minute'])
+df = df.set_index('dateTime')
+df = df[['open', 'high', 'low', 'close', 'volume']]
+
+print(df)
 
 
 
-
-
+#%%
 """
 well, I asses the 1% compounding interest (1 ci) to better 
 than 3% profit set aside (3 ps) because earning 1% profit daily 
@@ -1774,3 +1921,5 @@ than which can to to a reversal before 3% is reached and loss
 
 
 
+
+# %%
