@@ -1324,25 +1324,45 @@ import nasdaqdatalink
 nasdaqdatalink.ApiConfig.api_key = nasdaq_api
 mydata = nasdaqdatalink.get("FRED/GDP")
 #%%  Analysis of worst case scenario of O-H-LC
-close_eq_low = []
 
-for row_index, row_data in laes.iterrows():
-    if row_data["Low"]==row_data["Close"]:
-        close_eq_low.append(row_index)
+def cal_close_eq_low(df):
+    """Calculates the probability that the Close price was the Lowest 
+       price.
+
+    Args:
+        df (_type_): Data in the format of stock prices with Open, Low, High and Close
+
+    Returns:
+        Dict: Keys are probability cases (positives, list of data row)
+    """
+    close_eq_low = []
+    count = 0
+    num_all_samples = 0
+    for row_index, row_data in df.iterrows():
+        if row_data["Low"]==row_data["Close"]:
+            close_eq_low.append(row_data)
+            count += 1
+            num_all_samples += 1
+        else:
+            num_all_samples += 1
+    proba = (count / num_all_samples) * 100
+    
+    return {"probability": proba, 
+     "cases": close_eq_low
+    }
         
 #%%
 
 
-close_eq_low 
+close_eq_low = cal_close_eq_low(laes)
+
+close_eq_low["probability"]
 
 #%%
+close_eq_low["cases"]
+#%%
 
-laes[laes.index == close_eq_low[1]] 
 
-#%% probability of the worst case where close price == low is about 4.5%
-
-(len(close_eq_low)/(len(laes))) * 100    
- 
 #%%
 stock = yf.Ticker(ticker)
 start = str(close_eq_low[-5].date())
@@ -1560,7 +1580,41 @@ def calculate_price_change(data, col="Close"):
     data["color"] = ["red" if x == False else "green" for x in data[["status_rise"]].values]
     return data
 
+#%%
 
+    """Execution strategy
+    
+    Place Buy limit order at a certain price of entry and place sell limit 
+    order below a certain price below to exit at loss. 
+    Then place a buy limit order at the sell limit order used and calculate 
+    the percentage  required to recover loss + profit to determine 
+    new Sell limit order price.
+    
+    
+    Example usage
+    I set buy limit order at $ 10 and went long with a sell limit order of 
+    $11 for profit and set Loss limit order at $ 5. 
+    Now price fall to $5 and sell limit order was triggered so I sold at a lost.
+    Price fell further to $1 and when got to $2, I went long gain and set new sell 
+    limit order at $5 which was successful.
+    
+    If I started with 1000$ for trading, this will be the case.
+    1. 1000/10 -> 100 shares initially
+    2. Amt after selling at 5 -> 500 hence loss f 500
+    3  500/2 -> 250 shares for new buy price
+    4. 250 * $5 -> $1250 -> After selling at new price
+    Profit = 1250 - 1000 -> 250
+    
+    In a case where the initial goal of $11 was achieved then, 
+    profit = 1100 - 1000 -> 100
+    
+    In the case of do nothing and wait for price, then I would have 
+    ended the day with loss of $500. Hence stop losses when implemented well
+    can actually be beneficial to revert a lossing trade to profit.
+    Lot of calculations need to be done to determine this entry and exit points.
+    
+     
+    """
 def plot_column_chart(data, y="Close", hover_data=["pct_change"],
                       marker_color="color"
                       ):
