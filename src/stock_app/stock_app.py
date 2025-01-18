@@ -1147,15 +1147,15 @@ visualize the stock price to know and understand what happens mostly
 """
 
 #%%  
-def calculate_next_day_profit_from_curr_close(df):
+def calculate_proba_close_lower_than_nextday_high(df):
     """if current high, low and close are higher than previous than buy at close and 
         sell next day at profit
 
     Args:
-        df (_type_): _description_
+        df (DataFrame): _description_
 
     Returns:
-        _type_: _description_
+        Dict: _description_
     """
     
     higher_high = 0
@@ -1209,7 +1209,7 @@ def calculate_next_day_profit_from_curr_close(df):
     
 #%%
 
-laes_nextday_profit_res = calculate_next_day_profit_from_curr_close(laes)
+laes_nextday_profit_res = calculate_proba_close_lower_than_nextday_high(laes)
 
 
 #%%
@@ -1217,7 +1217,7 @@ laes_nextday_profit_res["probability"]
 
 #%%
 laes_nextday_profit_res["curr_closeprice_higher_thn_nextday_high_samples"][3]
-#%% TODO: For the calculate_next_day_profit_from_curr_close results
+#%% TODO: For the calculate_proba_close_lower_than_nextday_high results
 # explore the samples that failed. 
 # Find by how much Close was lower than the next day High so that becomes 
 # a suggested % reduction of Close to enter the market in the After hours, Overnight 
@@ -1235,6 +1235,15 @@ Moreover, buying below the daily low is a better way.
 #%%
 
 def low_open_diff(df):
+    """Calculates the percentage difference between Low and Open price
+
+    Args:
+        df (DataFrame): Data in the format of stock price with columns Open,
+                        Low, High and Close price
+
+    Returns:
+        DataFrame: A DataFrame with low_open_pct_change column added to existing columns
+    """
     df["low_open_pct_change"] = ((df["Low"] - df["Open"])/df["Open"]) * 100
     return df
 
@@ -1280,6 +1289,15 @@ laes["int_low_open_pct_change"] = laes_int_low_open_pct_change
 import pandas_market_calendars as mcal
 import pandas as pd
 def get_trading_dates(year, exchange="NYSE"):
+    """Get list of trading dates
+
+    Args:
+        year (int): Year to get trading dates for
+        exchange (str, optional): Name of Stock Exchange . Defaults to "NYSE".
+
+    Returns:
+        List: List of trading dates
+    """
     stock_exchange = mcal.get_calendar(exchange)
     start_date = f'{year}-01-01'
     end_date = f'{year}-12-31'
@@ -1382,6 +1400,15 @@ selling next day is not profitable. This needs further investigation
 
 #%%
 def high_low_diff(df):
+    """Calculate the percentage difference between the High and Low
+
+    Args:
+        df (DataFrame): Data in the format of stock price with columns Open, Low, High and
+                        Close
+
+    Returns:
+        DataFrame: Adds the column high_low_pct_change to the existing columns
+    """
     df["high_low_pct_change"] = ((df["High"] - df["Low"])/df["Low"]) * 100
     return df
 
@@ -1450,6 +1477,14 @@ calculate_prob_close_lower_thn_open(df=laes_open_eq_low)
 
 #%%
 def close_open_diff(df):
+    """Calculate the percentage change between Open and Close (Close - Open)
+
+    Args:
+        df (DataFrame): Data in the format with columns Open, Close, High and Low
+
+    Returns:
+        DataFrame: Adds a column close_open_pct_change to existing columns
+    """
     df["close_open_pct_change"] = ((df["Close"] - df["Open"])/df["Open"]) * 100
     return df
 
@@ -1696,7 +1731,7 @@ px.histogram(data_frame=applovin_df["low_open_pct_change"])
 close_open_diff(df=applovin_df)
 
 #%%
-calculate_next_day_profit_from_curr_close(applovin_df)
+calculate_proba_close_lower_than_nextday_high(applovin_df)
 
 #%%
 calculate_price_change(applovin_df)
@@ -1870,7 +1905,7 @@ data = ticker.history()
 # %%
 data
 # %%
-calculate_next_day_profit_from_curr_close(data)
+calculate_proba_close_lower_than_nextday_high(data)
 # %%
 close_open_diff(data)
 # %%
@@ -1890,7 +1925,6 @@ import time
 # Replace 'YOUR_API_KEY' with your actual Alpha Vantage API key
 api_key = 'YOUR_API_KEY'
 fx = ForeignExchange(key=api_key)
-fx.
 def get_forex_data(base_currency, target_currency, outputsize='compact'):
     data, _ = fx.get_currency_exchange_daily(
         from_symbol=base_currency,
@@ -1987,5 +2021,24 @@ than which can to to a reversal before 3% is reached and loss
 
 
 
+#%% TODO
+' Explore idea of creating stable pies / index for day trading'
 
 # %%
+"""
+Analysis for trading
+
+1. Determine drawn for buy entry limit order and 1% profit sell limit order
+>>>> Requires statistical analysis --- Tools ready for use
+
+
+2. Pattern recognition
+Buy at close and sell at profit the next day -- tools ready for use
+
+
+3. Outside Regular hours
+Buy below regular hours Low price / Close in After hours / Premarket 
+and sell for profit next day -- Tools not ready
+
+
+"""
