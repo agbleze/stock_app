@@ -1055,6 +1055,18 @@ more_thn_1 = [pft for pft in qsi_res["profit_percent_scores"] if pft > 1]
 #%%
 
 def calculate_prob_close_lower_thn_open(df):
+    """Calculate the probability that the stock closes lower than 
+        the open price
+
+    Args:
+        df (_type_): data in the format of stock price data with columns
+                    Close, Open, High, Low
+
+    Returns:
+        Dict: keys are total_samples (all samples in the data), probability, loss_percent_list (for instances 
+                where close was lower than open price), loss_percent (total 
+                loss percentage)
+    """
     proba = 0
     all_comp = 0
     loss_percent_list = []
