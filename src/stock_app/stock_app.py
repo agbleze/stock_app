@@ -1316,15 +1316,40 @@ def O_H_LC(df, trading_dates):
     # check if timestamp for high is before L and L and Close are same time
 
 
+
+#%%
 import yfinance as yf
 
 # Example: Apple Inc.
 ticker = 'LAES'
 stock = yf.Ticker(ticker)
 
+save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data"
 #%% Download data including extended hours
-hist = stock.history(start="2024-01-16", end="2024-01-17", period='1d',
-                     interval='1m', prepost=False)
+hist = stock.history(start="2025-01-11", #period='1d',
+                     interval='1m', prepost=True)
+
+
+#%%
+tickers = ["NVDA", "SMCI","AI", "RGTI", "QSI", "QUBT",
+           "PLTR", "IONQ", "QBTS", "CRNC", "AVGO","ANET",
+           "LLY", "AAPL", "LOM", "BLK", "WMT", "IBM", "O",
+           "TMO","SOUN", "APP", "WKEY", "EQT", "AISP",
+           "SAP"]
+
+#%%
+tickers = ["RHM.DE", "LMT", "TRE", "HEI", "UNCRY", "ENL", "INTC",
+           "ACA", "GFT", "FDX", "LIN", "V", "META", "QCOM",
+           "NVO", "CRWD", "NFLX", "MCD", "AMAT", "BNP",
+           "HO", "ADN1", "RBI"]
+for ticker in tickers:
+    stock = yf.Ticker(ticker)
+    hist = stock.history(start="2025-01-11", #period='1d',
+                         interval='1m', prepost=True
+                         )
+    hist.to_csv(f"{save_dir}/{ticker}_2025_01_11_to_2025_01_17.csv")
+
+
 
 #%%
 hist[hist["High"]==hist["High"].max()].index
@@ -1335,7 +1360,10 @@ hist[hist["Low"]==hist["Low"].min()].index
 
 
 #%%
-
+'''
+When current low is higher than next day high, a regime change 
+may have occurred
+'''
 
 #%%
 import nasdaqdatalink
@@ -1574,21 +1602,15 @@ Find the band of oscillation and scrap them for 1% profit
 #%%
 
 import yfinance as yf
-
-#%%
-
-import yfinance as yf
 import pandas as pd
 import datetime
 
 
 #%%
 ticker_symbol = 'AAPL'  # Example: Apple Inc.
-start_date = '2025-01-05'
-end_date = '2023-01-02'
+start_date = '2025-01-11'
+#end_date = '2023-01-02'
 
-
-#%%
 data = yf.download("LAES", start=start_date, interval='1m')
 #data.head()
 
@@ -1861,6 +1883,7 @@ ticker = 'LAES'
 stock = yf.Ticker(ticker)
 _date = "2025-01-10"
 # Download data including extended hours
+laes_test = stock.history(period='5d', interval='1m', prepost=True)
 hist = stock.history(period='5d', interval='1m', prepost=True)
 
 # Convert the index to a column for easier filtering
@@ -1870,19 +1893,73 @@ hist = hist.reset_index()
 market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
 market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
 
-# Filter pre-market data
-pre_market_data = hist[hist['Datetime'].dt.time < market_open]
+#%% Filter pre-market data
+pre_market_data = hist[hist['Datetime'].dt.time <= market_open]
 
 # Filter after-hours data
-after_hours_data = hist[hist['Datetime'].dt.time > market_close]
+after_hours_data = hist[hist['Datetime'].dt.time >= market_close]
 
-print("Pre-market data:")
-print(pre_market_data.head())
+# print("Pre-market data:")
+# print(pre_market_data.head())
 
-print("\nAfter-hours data:")
-print(after_hours_data.head())
+# print("\nAfter-hours data:")
+# print(after_hours_data.head())
 
+#%% TODO: 
+# Verify the results of cal_proba_low_regular_in_after_hours
+# check that they can be successfully executed in real time
+# by ensuring price rise in the after_hours or premarket of the following
+# day after hitting the low from regular hours
 
+def cal_proba_low_regular_in_after_hours(df):
+    case_count = 0
+    all_count = 0
+    case_date = []
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    #regular_hrs = df[(df.index >= market_open) and (df.index <= market_close)]
+    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+    reg_df = df[df.index.isin(reguhr)]
+    unique_date = np.unique(df.index.date)
+    afterhr_df = df[df.index.time >= market_close]
+    
+    for item in unique_date:
+        day_reguhr = reg_df[reg_df.index.date == item]
+        day_afterhr = afterhr_df[afterhr_df.index.date == item]
+        day_reguhr_Lowmin = day_reguhr["Low"].min()
+        cases = day_afterhr[day_afterhr["Low"] <= day_reguhr_Lowmin]
+        if len(cases) > 0:
+            case_count += 1
+            all_count += 1
+            case_date.append(item)
+        else:
+            all_count += 1
+    if case_count > 0:
+        proba = (case_count / all_count) * 100
+    else:
+        proba = 0.0
+    return {"probability": proba,
+            "case_date": case_date
+            }
+    
+            
+#%%
+
+low_reg_in_afterhr_res = cal_proba_low_regular_in_after_hours(laes_test)       
+
+low_reg_in_afterhr_res["case_date"]
+#%%
+ticker = 'LAES'
+stock = yf.Ticker(ticker)
+_date = "2025-01-10"
+# Download data including extended hours
+laes_daily_prepost_included = stock.history(start=laes.index[0],
+                                            prepost=True
+                                            )
+
+#%%
+#cal_proba_low_regular_in_after_hours(laes_daily_prepost_included)   
 
 
 
