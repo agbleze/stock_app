@@ -1342,9 +1342,10 @@ tickers = ["RHM.DE", "LMT", "TRE", "HEI", "UNCRY", "ENL", "INTC",
            "ACA", "GFT", "FDX", "LIN", "V", "META", "QCOM",
            "NVO", "CRWD", "NFLX", "MCD", "AMAT", "BNP",
            "HO", "ADN1", "RBI"]
+tickers = ["RHM.DE"]
 for ticker in tickers:
     stock = yf.Ticker(ticker)
-    hist = stock.history(start="2025-01-11", #period='1d',
+    hist = stock.history(start="2025-01-12", #period='1d',
                          interval='1m', prepost=True
                          )
     hist.to_csv(f"{save_dir}/{ticker}_2025_01_11_to_2025_01_17.csv")
@@ -1943,7 +1944,80 @@ def cal_proba_low_regular_in_after_hours(df):
             "case_date": case_date
             }
     
-            
+
+#%%
+def buy_from_afterhrs(df, profit_percent=1):
+    """Estimate the scenario of buying in the after hours at the 
+
+    Args:
+        df (_type_): _description_
+        profit_percent (int, optional): _description_. Defaults to 1.
+
+    Returns:
+        _type_: _description_
+    """
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    #regular_hrs = df[(df.index >= market_open) and (df.index <= market_close)]
+    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+    reg_df = df[df.index.isin(reguhr)]
+    unique_date = np.unique(df.index.date)
+    afterhr_df = df[df.index.time >= market_close]
+    buy_price_list = []
+    buy_day_list = []
+    sell_price_list = []
+    sell_day_list = []
+    profit_lose_list = []
+    for item in unique_date:
+        day_reguhr = reg_df[reg_df.index.date == item]
+        day_afterhr = afterhr_df[afterhr_df.index.date == item]
+        day_reguhr_Lowmin = day_reguhr["Low"].min()
+        #print(f"day_reguhr_Lowmin : {day_reguhr_Lowmin}")
+        enter_post = False
+        buy_price = 0
+        exit_price = 0
+        exit_post = False
+        for row_index, row_data in day_afterhr.iterrows():
+            if not enter_post:
+                if row_data["Close"] <= day_reguhr_Lowmin:
+                    buy_price = row_data["Close"]
+                    buy_price_list.append(buy_price)
+                    buy_day_list.append(row_index)
+                    enter_post = True
+                    exit_price = ((100 + profit_percent)/100) * buy_price
+            elif enter_post:
+                if not exit_post:
+                    if row_data["Close"] >= exit_price:
+                        sell_price = row_data["Close"]
+                        sell_price_list.append(sell_price)
+                        sell_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        exit_post = True
+                    elif row_index == day_afterhr.index[-1]:
+                        sell_price = row_data["Close"]
+                        sell_price_list.append(sell_price)
+                        sell_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        enter_post = False
+                        #exit_post = True
+    return {"buy_price_list": buy_price_list,
+            "buy_day_list": buy_day_list,
+            "sell_price_list": sell_price_list,
+            "sell_day_list": sell_day_list,
+            "profit_lose_list": profit_lose_list
+            }          
+                   
+
+#%%
+
+laes_test_res = buy_from_afterhrs(laes_test)
+
+#%%
+
+laes_test_res["sell_price_list"]
 #%%
 
 low_reg_in_afterhr_res = cal_proba_low_regular_in_after_hours(laes_test)       
@@ -1961,7 +2035,50 @@ laes_daily_prepost_included = stock.history(start=laes.index[0],
 #%%
 #cal_proba_low_regular_in_after_hours(laes_daily_prepost_included)   
 
+#%%  TSLA
 
+tsla_stock = yf.Ticker("TSLA")
+
+tsla_prepost = tsla_stock.history(start="2025-01-13", prepost=True,
+                                  period='5d', interval='1m'
+                                  )
+
+#%%
+
+tsla_prepost.to_csv("/home/lin/codebase/stock_app/src/stock_app/minute_data/TSLA_2025_01_11_to_2025_01_17.csv")
+#%%
+tsla_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(tsla_prepost)
+
+tsla_lowreg_in_afterhr["probability"]
+
+#%%
+tsla_lowreg_in_afterhr["case_date"]
+
+#%% NVDA
+
+nvda_stock = yf.Ticker("NVDA")
+
+nvda_prepost = nvda_stock.history(start="2025-01-13", prepost=True,
+                                  period='5d', interval='1m'
+                                  )
+
+nvda_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(nvda_prepost)
+
+nvda_lowreg_in_afterhr["probability"]
+
+#%%
+jpm_stock = yf.Ticker("PEP")
+
+jpm_prepost =jpm_stock.history(start="2025-01-13", prepost=True,
+                                  period='5d', interval='1m'
+                                  )
+
+jpm_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(jpm_prepost)
+
+jpm_lowreg_in_afterhr["probability"]
+
+#%%
+jpm_prepost.to_csv("/home/lin/codebase/stock_app/src/stock_app/minute_data/PEP_2025_01_11_to_2025_01_17.csv")
 
 # %%
 
