@@ -1928,9 +1928,12 @@ def cal_proba_low_regular_in_after_hours(df):
     for item in unique_date:
         day_reguhr = reg_df[reg_df.index.date == item]
         day_afterhr = afterhr_df[afterhr_df.index.date == item]
-        day_reguhr_Lowmin = day_reguhr["Low"].min()
-        cases = day_afterhr[day_afterhr["Low"] <= day_reguhr_Lowmin]
-        if len(cases) > 0:
+        day_reguhr_Lowmin = day_reguhr["Close"].min()
+        day_afterhr_Lowmin = day_afterhr["Close"].min()
+        #cases = day_afterhr[day_afterhr["Low"].min() <= day_reguhr_Lowmin]
+        if day_afterhr_Lowmin <= day_reguhr_Lowmin:
+            print(f"day_afterhr_Lowmin : {day_afterhr_Lowmin}")
+            print(f"day_reguhr_Lowmin : {day_reguhr_Lowmin}")
             case_count += 1
             all_count += 1
             case_date.append(item)
@@ -1973,7 +1976,7 @@ def buy_from_afterhrs(df, profit_percent=1):
     for item in unique_date:
         day_reguhr = reg_df[reg_df.index.date == item]
         day_afterhr = afterhr_df[afterhr_df.index.date == item]
-        day_reguhr_Lowmin = day_reguhr["Low"].min()
+        day_reguhr_Lowmin = day_reguhr["Close"].min()
         #print(f"day_reguhr_Lowmin : {day_reguhr_Lowmin}")
         enter_post = False
         buy_price = 0
@@ -2007,7 +2010,6 @@ def buy_from_afterhrs(df, profit_percent=1):
                         enter_post = False
                         profit = ((sell_price - buy_price)/buy_price) * 100
                         profit_lose_percent_list.append(profit)
-                        #exit_post = True
     return {"buy_price_list": buy_price_list,
             "buy_day_list": buy_day_list,
             "sell_price_list": sell_price_list,
@@ -2074,15 +2076,15 @@ tsla_prepost_afterhrs_res["profit_lose_percent_list"]
 
 nvda_stock = yf.Ticker("NVDA")
 
-nvda_prepost = nvda_stock.history(start="2025-01-13", prepost=True,
-                                  period='5d', interval='1m'
+nvda_prepost = nvda_stock.history(start="2025-01-15", prepost=True,
+                                  period='8d', interval='1m'
                                   )
 
 nvda_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(nvda_prepost)
 
 nvda_lowreg_in_afterhr["probability"]
 
-
+nvda_lowreg_in_afterhr
 #%%
 
 nvda_prepost_afterhrs_res = buy_from_afterhrs(nvda_prepost)
@@ -2090,13 +2092,20 @@ nvda_prepost_afterhrs_res = buy_from_afterhrs(nvda_prepost)
 #%%
 
 nvda_prepost_afterhrs_res["profit_lose_percent_list"]
+
+
+nvda_df_day = nvda_prepost[nvda_prepost.index.date >= nvda_lowreg_in_afterhr["case_date"][0]]
+
+px.line(nvda_df_day, x=nvda_df_day.index, y="Close")
 #%%
 jpm_stock = yf.Ticker("PLTR")
 
-jpm_prepost =jpm_stock.history(start="2025-01-14", prepost=True,
+jpm_prepost =jpm_stock.history(start="2025-01-15", prepost=True,
                                   period='5d', interval='1m'
                                   )
 
+
+#%%
 jpm_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(jpm_prepost)
 
 jpm_lowreg_in_afterhr["probability"]
@@ -2115,11 +2124,6 @@ after_hrs_res["profit_lose_percent_list"]
 #%%
 
 pltr_df_day = jpm_prepost[jpm_prepost.index.date == jpm_lowreg_in_afterhr["case_date"][0]]
-
-
-#%%
-
-pltr_df_day
 
 px.line(pltr_df_day, x=pltr_df_day.index, y="Close")
 #%%
