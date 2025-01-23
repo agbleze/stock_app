@@ -2077,7 +2077,8 @@ tsla_prepost_afterhrs_res["profit_lose_percent_list"]
 nvda_stock = yf.Ticker("NVDA")
 
 nvda_prepost = nvda_stock.history(start="2025-01-15", prepost=True,
-                                  period='8d', interval='1m'
+                                  #period='8d', 
+                                  interval='1m'
                                   )
 
 nvda_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(nvda_prepost)
@@ -2126,10 +2127,42 @@ after_hrs_res["profit_lose_percent_list"]
 pltr_df_day = jpm_prepost[jpm_prepost.index.date == jpm_lowreg_in_afterhr["case_date"][0]]
 
 px.line(pltr_df_day, x=pltr_df_day.index, y="Close")
+
+
+#%%   #####################             ################
+#%%
+intc_stock = yf.Ticker("Now")
+
+intc_prepost =intc_stock.history(start="2025-01-16", prepost=True,
+                                  interval='1m'
+                                  )
+intc_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(intc_prepost)
+
+intc_lowreg_in_afterhr["probability"]
+
+
+#%%
+#jpm_prepost.to_csv("/home/lin/codebase/stock_app/src/stock_app/minute_data/PEP_2025_01_11_to_2025_01_17.csv")
+
+# %%
+after_hrs_res = buy_from_afterhrs(intc_prepost)
+
+after_hrs_res["profit_lose_percent_list"]
+
+
+#%%
+
+intc_df_day = intc_prepost[intc_prepost.index.date == intc_lowreg_in_afterhr["case_date"][-4]]
+
+px.line(intc_df_day, x=intc_df_day.index, y="Close")
+
+
 #%%
 selected_stocks = ["CRWD", "ANET", "AVGO", 
                    "NFLX", "SAP", "IBM", "WMT",
-                   "JPM", "GOOGL"]
+                   "JPM", "GOOGL",
+                   "MA", "LOW", "MAD",
+                   "QCOM", "PEP"]
 # %%
 import yfinance as yf
 import pandas as pd
