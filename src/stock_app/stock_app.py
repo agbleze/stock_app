@@ -2020,6 +2020,71 @@ def buy_from_afterhrs(df, profit_percent=1):
                    
 
 #%%
+def use_premarket_low_to_buy_regular_low(df, profit_percent=1):
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    
+    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+    reg_df = df[df.index.isin(reguhr)]
+    unique_date = np.unique(df.index.date)
+    
+    premarket_df = df[df.index.time <= market_open]
+    buy_price_list = []
+    buy_day_list = []
+    sell_price_list = []
+    sell_day_list = []
+    profit_lose_list = []
+    profit_lose_percent_list = []
+    
+    for item in unique_date:
+        day_reguhr = reg_df[reg_df.index.date == item]
+        day_premarket = premarket_df[premarket_df.index.date == item]
+        day_premarket_Lowmin = day_premarket["Close"].min()
+        enter_post = False
+        buy_price = 0
+        exit_price = 0
+        exit_post = False
+        for row_index, row_data in day_reguhr.iterrows():
+            if not enter_post:
+                if row_data["Close"] <= day_premarket_Lowmin:
+                    buy_price = row_data["Close"]
+                    buy_price_list.append(buy_price)
+                    buy_day_list.append(row_index)
+                    enter_post = True
+                    exit_price = ((100 + profit_percent)/100) * buy_price
+            elif enter_post:
+                if not exit_post:
+                    if row_data["Close"] >= exit_price:
+                        sell_price = row_data["Close"]
+                        sell_price_list.append(sell_price)
+                        sell_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        exit_post = True
+                        profit = ((sell_price - buy_price)/buy_price) * 100
+                        profit_lose_percent_list.append(profit)
+                    elif row_index == day_reguhr.index[-1]:
+                        sell_price = row_data["Close"]
+                        sell_price_list.append(sell_price)
+                        sell_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        enter_post = False
+                        profit = ((sell_price - buy_price)/buy_price) * 100
+                        profit_lose_percent_list.append(profit)
+    return {"buy_price_list": buy_price_list,
+            "buy_day_list": buy_day_list,
+            "sell_price_list": sell_price_list,
+            "sell_day_list": sell_day_list,
+            "profit_lose_list": profit_lose_list,
+            "profit_lose_percent_list": profit_lose_percent_list
+            }          
+                
+    
+    
+    
+#%%
 
 laes_test_res = buy_from_afterhrs(laes_test)
 
@@ -2131,7 +2196,7 @@ px.line(pltr_df_day, x=pltr_df_day.index, y="Close")
 
 #%%   #####################             ################
 #%%
-intc_stock = yf.Ticker("Now")
+intc_stock = yf.Ticker("QBTS")
 
 intc_prepost =intc_stock.history(start="2025-01-16", prepost=True,
                                   interval='1m'
@@ -2155,6 +2220,26 @@ after_hrs_res["profit_lose_percent_list"]
 intc_df_day = intc_prepost[intc_prepost.index.date == intc_lowreg_in_afterhr["case_date"][-4]]
 
 px.line(intc_df_day, x=intc_df_day.index, y="Close")
+
+
+
+#%%
+
+premarket_str_res = use_premarket_low_to_buy_regular_low(intc_prepost)
+
+premarket_str_res["profit_lose_percent_list"]
+
+#%%
+premarket_str_res.keys()
+
+#%%
+premarket_str_res["buy_price_list"]
+
+#%%
+premarket_str_res["buy_day_list"]
+
+#%%
+premarket_str_res["sell_price_list"]
 
 
 #%%
