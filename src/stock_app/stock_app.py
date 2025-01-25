@@ -2082,7 +2082,9 @@ def use_premarket_low_to_buy_regular_low(df, profit_percent=1):
             }          
                 
     
-    
+
+def cal_proba_premarket_low_in_regular_hr(df):
+    pass
     
 #%%
 
@@ -2196,9 +2198,9 @@ px.line(pltr_df_day, x=pltr_df_day.index, y="Close")
 
 #%%   #####################             ################
 #%%
-intc_stock = yf.Ticker("QBTS")
+intc_stock = yf.Ticker("TROW")
 
-intc_prepost =intc_stock.history(start="2025-01-16", prepost=True,
+intc_prepost =intc_stock.history(start="2025-01-18", prepost=True,
                                   interval='1m'
                                   )
 intc_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(intc_prepost)
@@ -2209,15 +2211,25 @@ intc_lowreg_in_afterhr["probability"]
 #%%
 #jpm_prepost.to_csv("/home/lin/codebase/stock_app/src/stock_app/minute_data/PEP_2025_01_11_to_2025_01_17.csv")
 
-# %%
+# %% TODO: DEBUG: PPG did sell after buying
 after_hrs_res = buy_from_afterhrs(intc_prepost)
 
 after_hrs_res["profit_lose_percent_list"]
 
 
 #%%
+print(f"buy price: {after_hrs_res['buy_price_list']}")
 
-intc_df_day = intc_prepost[intc_prepost.index.date == intc_lowreg_in_afterhr["case_date"][-4]]
+print(f"sell rpice: {after_hrs_res['sell_price_list']}")
+#%%
+print(f"buy day: {after_hrs_res['buy_day_list']}")
+
+print(f"sell day: {after_hrs_res['sell_day_list']}")
+
+#%%
+
+
+intc_df_day = intc_prepost[intc_prepost.index.date == intc_lowreg_in_afterhr["case_date"][-1]]
 
 px.line(intc_df_day, x=intc_df_day.index, y="Close")
 
@@ -2236,18 +2248,44 @@ premarket_str_res.keys()
 premarket_str_res["buy_price_list"]
 
 #%%
+premarket_str_res["sell_price_list"]
+
+#%%
 premarket_str_res["buy_day_list"]
 
 #%%
-premarket_str_res["sell_price_list"]
+premarket_str_res["sell_day_list"]
 
 
 #%%
-selected_stocks = ["CRWD", "ANET", "AVGO", 
+
+selected_premarket_stocks = ["APP", "SMIC", "NOW", "QBTS", "RGTI", "LAES",
+                             "AVGO", "SAP", "JPM", "NFLX"
+                             "PEP", "WMT", "WDAY", "PLTR", "CRNC",
+                             "QUBT", "AI", "HSAI", "LLY", "TSM", 
+                             "BLK", "MSTR", "MCD"; "LOW",
+                             "PG", "WKEY", "TMO", "MPW", "SCHW",
+                             "SSTK", "DDD", "AIR"; "NSANY", "EQT",
+                             "RR", "VRME", "CLSK", "TSLA", "META",
+                             "AMZN", "GOOGL", "COIN", "ADP",
+                             "CSCO", "JNJ", "NUE", "TROW"
+                             ]
+#%%
+selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO", 
                    "NFLX", "SAP", "IBM", "WMT",
                    "JPM", "GOOGL",
                    "MA", "LOW", "MAD",
-                   "QCOM", "PEP"]
+                   "QCOM", "PEP", "TMO", "NOW",
+                   "QUBT",
+                   "WDAY", "LLY", "TSM",
+                   "BLK", "MSTR", "MAIN", "PG",
+                   "ABR", "LIN", "EAT", "MMM",
+                   "ASML", "WKEY", "INTC", "SCHW",
+                   "SSTK", "AIR", "EQT", "VRME", "CLSK",
+                   "AAPL", "ADP", "CSCO", "SOFI", "NUE",
+                   "ITW", "TROW"
+                   ]
+
 # %%
 import yfinance as yf
 import pandas as pd
@@ -2402,3 +2440,9 @@ and sell for profit next day -- Tools not ready
 
 
 """
+
+
+# TODO:
+# Add option to include extended perods to the fater market and premarket buy algorithms
+
+
