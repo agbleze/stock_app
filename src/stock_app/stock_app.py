@@ -1985,11 +1985,14 @@ def buy_from_afterhrs(df, profit_percent=1):
         for row_index, row_data in day_afterhr.iterrows():
             if not enter_post:
                 if row_data["Close"] <= day_reguhr_Lowmin:
-                    buy_price = row_data["Close"]
-                    buy_price_list.append(buy_price)
-                    buy_day_list.append(row_index)
-                    enter_post = True
-                    exit_price = ((100 + profit_percent)/100) * buy_price
+                    if row_index == day_afterhr.index[-1]:
+                        print(f"Not bought because it is last time of after hours {row_index}")
+                    else:
+                        buy_price = row_data["Close"]
+                        buy_price_list.append(buy_price)
+                        buy_day_list.append(row_index)
+                        enter_post = True
+                        exit_price = ((100 + profit_percent)/100) * buy_price
             elif enter_post:
                 if not exit_post:
                     if row_data["Close"] >= exit_price:
@@ -2198,9 +2201,9 @@ px.line(pltr_df_day, x=pltr_df_day.index, y="Close")
 
 #%%   #####################             ################
 #%%
-intc_stock = yf.Ticker("TROW")
+intc_stock = yf.Ticker("PPG")
 
-intc_prepost =intc_stock.history(start="2025-01-18", prepost=True,
+intc_prepost =intc_stock.history(start="2025-01-19", prepost=True,
                                   interval='1m'
                                   )
 intc_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(intc_prepost)
@@ -2211,7 +2214,7 @@ intc_lowreg_in_afterhr["probability"]
 #%%
 #jpm_prepost.to_csv("/home/lin/codebase/stock_app/src/stock_app/minute_data/PEP_2025_01_11_to_2025_01_17.csv")
 
-# %% TODO: DEBUG: PPG did sell after buying
+# %% 
 after_hrs_res = buy_from_afterhrs(intc_prepost)
 
 after_hrs_res["profit_lose_percent_list"]
@@ -2268,7 +2271,9 @@ selected_premarket_stocks = ["APP", "SMIC", "NOW", "QBTS", "RGTI", "LAES",
                              "SSTK", "DDD", "AIR"; "NSANY", "EQT",
                              "RR", "VRME", "CLSK", "TSLA", "META",
                              "AMZN", "GOOGL", "COIN", "ADP",
-                             "CSCO", "JNJ", "NUE", "TROW"
+                             "CSCO", "JNJ", "NUE", "TROW",
+                             "SYY", "GWW", "AZN", "NVAX", "MRNA";
+                             "NVS", "BNTX", "GME", "AMC", "ZM"
                              ]
 #%%
 selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO", 
@@ -2283,7 +2288,9 @@ selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO",
                    "ASML", "WKEY", "INTC", "SCHW",
                    "SSTK", "AIR", "EQT", "VRME", "CLSK",
                    "AAPL", "ADP", "CSCO", "SOFI", "NUE",
-                   "ITW", "TROW"
+                   "ITW", "TROW", "SYY", "GWW", "AZN",
+                   "MRK", "NVS", "BNTX", "AMC","ZM"
+                
                    ]
 
 # %%
