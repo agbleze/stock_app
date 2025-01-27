@@ -30,6 +30,7 @@ card_icon = {
     "margin": "auto"
 }
 
+#%%
 company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
                   "SAP": "SAP", "Dell Technologies": "DELL",
                   "Brinker International": "BKJ.F", "Unipol Gruppo SpA": "UIPN.MU",
@@ -79,6 +80,8 @@ company_ticker = {"Tecnicas Reunidas SA": "0MKT.IL",
                   "Mapfre SA": "MAPE.XC"
                   }
 
+
+#%%
 predcol = ['High', 'Low', 'Close', 'Adj Close', 'Volume']
 
 model_type = ("lstm", "bilstm", "cnn")
@@ -294,6 +297,13 @@ appside_layout = html.Div(
                                                                 html.Br(),
                                                                 dbc.DropdownMenuItem(children=[html.H5(" Model Performance", className="bi bi-plus-slash-minus")],
                                                                                      id="id_model_perf",
+                                                                                     ),
+                                                                html.Br(),
+                                                                dbc.DropdownMenuItem(children=[html.H5(" Strategy Analytics",
+                                                                                                       className="bi bi-arrows-move"
+                                                                                                       )
+                                                                                               ],
+                                                                                     id="id_strategy_analytics",
                                                                                      )
                                                                 ],
                                                                                            # ),
@@ -466,6 +476,53 @@ prediction_config_layout = html.Div(dbc.Modal([dbc.ModalHeader([dbc.ModalTitle("
                                                ], is_open=True, size="lg"
                                               )
                                     )
+
+
+strategy_types = {"Buy Premarket low in Regular": "pr_lw_reg",
+                  "Buy Regular low in After hours": "reg_lw_after"
+                  }
+
+strategy_layout = html.Div(children=[
+    html.H3("Strategy Analysis"),
+    dbc.Row(children=[
+        dbc.Col([#dbc.Label("Stock Ticker"),
+                 dbc.Input(id="id_strategy_stock_ticker",
+                            placeholder="Stock ticker as shown in yahoo finance",
+                            type="text"
+                            )
+                ]
+                ),
+        dbc.Col(dcc.Dropdown(id="id_strategy_type",
+                    options=[{"label": item[0], "value": item[1]}
+                                for item in strategy_types.items()
+                            ],
+                    placeholder="Select Strategy"
+                    )
+                ),
+        dbc.Col(
+            dbc.Input(id="id_strategy_target",
+                    placeholder="Target profit (%)",
+                    type="number"
+                    )
+        ),
+        dbc.Col(dbc.Switch(id="id_strategy_exclusion",
+                           label="Exclude Last Day",
+                           value=False
+                             )
+                ),
+        dbc.Col(dbc.Button("Backtest", id="id_backtest")),
+        dbc.Col(dbc.Button("Compare", id="id_compare_strategy")),
+        dbc.Col(children=[dcc.DatePickerRange(id="id_strategy_date",
+                                            )
+                        ]
+                ), 
+        ], 
+        ),
+    html.Div(id="id_strategy_backtest_results"),
+        
+    ])
+
+
 app.layout = appside_layout
 
 app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout, 
@@ -566,14 +623,15 @@ def plot_model_fit(data, forecast_period=120):
               Input(component_id="id_portfolio", component_property="n_clicks_timestamp"),
               Input(component_id="id_stock_perf", component_property="n_clicks_timestamp"),
               Input(component_id="id_model_perf", component_property="n_clicks_timestamp"),
-              Input(component_id="id_trained_model_path", component_property="data")
+              Input(component_id="id_strategy_analytics", component_property="n_clicks_timestamp"),
+              Input(component_id="id_trained_model_path", component_property="data"),
+              
               )
 def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
-                    model_perf, stored_data
+                    model_perf, strategy_analytics, stored_data
                     ):#boxplot: str, scatter: str, corr: str):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
     if not ctx.triggered:
         pass
         #return main_layout
@@ -599,10 +657,20 @@ def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
         #model_performance_children = stored_data["model_performance_children"]
         model_performance_ui = create_model_performance_ui(model_performance_children=model_performance_children)
         return model_performance_ui
+    elif button_id == "id_strategy_analytics":
+        return strategy_layout
     else:
         return dash.no_update
         
-        
+
+@app.callback(Output(component_id="id_strategy_backtest_results", component_property="children"),
+              Input()) 
+
+
+
+
+
+      
 @app.callback(Output(component_id="id_sidebar_offcanvas",component_property="is_open"),
               Input(component_id="id_brand_holder", component_property="n_clicks"),
               State(component_id="id_sidebar_offcanvas", component_property="is_open")
@@ -612,9 +680,6 @@ def show_sidebar_offcanvas(brand_holder_click, is_open):
         return not is_open
     return is_open
     
-
-
-
 @app.callback(Output(component_id="id_portfolio_items", component_property="children"),
               Input(component_id="id_portfolio_db", component_property="value")
               )
@@ -908,7 +973,7 @@ def make_prediction(start_date, end_date, stock_ticker, model_name,
 # https://www.sap.com/investors/en/stock.html
 
 if __name__ == "__main__":
-    app.run_server()
+    app.run_server(port=8040)
 
 # %%
 (107/100)*7.6
@@ -1324,7 +1389,7 @@ import yfinance as yf
 ticker = 'LAES'
 stock = yf.Ticker(ticker)
 
-save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data"
+save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/21_01_2025_to_24_01_2025"
 #%% Download data including extended hours
 hist = stock.history(start="2025-01-11", #period='1d',
                      interval='1m', prepost=True)
@@ -1335,20 +1400,27 @@ tickers = ["NVDA", "SMCI","AI", "RGTI", "QSI", "QUBT",
            "PLTR", "IONQ", "QBTS", "CRNC", "AVGO","ANET",
            "LLY", "AAPL", "LOM", "BLK", "WMT", "IBM", "O",
            "TMO","SOUN", "APP", "WKEY", "EQT", "AISP",
-           "SAP"]
-
-#%%
-tickers = ["RHM.DE", "LMT", "TRE", "HEI", "UNCRY", "ENL", "INTC",
+           "SAP",
+           "RHM.DE", "LMT", "TRE", "HEI", "UNCRY", "ENL", "INTC",
            "ACA", "GFT", "FDX", "LIN", "V", "META", "QCOM",
            "NVO", "CRWD", "NFLX", "MCD", "AMAT", "BNP",
-           "HO", "ADN1", "RBI"]
-tickers = ["RHM.DE"]
+           "HO", "ADN1", "RBI"
+           ]
+
+#%%
+# tickers = ["RHM.DE", "LMT", "TRE", "HEI", "UNCRY", "ENL", "INTC",
+#            "ACA", "GFT", "FDX", "LIN", "V", "META", "QCOM",
+#            "NVO", "CRWD", "NFLX", "MCD", "AMAT", "BNP",
+#            "HO", "ADN1", "RBI"]
+#tickers = ["RHM.DE"]
+
+tickers = ["SIDU"]
 for ticker in tickers:
     stock = yf.Ticker(ticker)
-    hist = stock.history(start="2025-01-12", #period='1d',
+    hist = stock.history(start="2025-01-20", period='1mo',
                          interval='1m', prepost=True
                          )
-    hist.to_csv(f"{save_dir}/{ticker}_2025_01_11_to_2025_01_17.csv")
+    hist.to_csv(f"{save_dir}/{ticker}_2025_01_21_to_2025_01_24.csv")
 
 
 
@@ -1948,7 +2020,9 @@ def cal_proba_low_regular_in_after_hours(df):
             }
     
 
-#%%
+#%% TODO: Add plots with horizontal lines  showing the lowest price
+# in regular hours and a vertical line showing when it went long 
+# in after hours and another vertical for sell time
 def buy_from_afterhrs(df, profit_percent=1):
     """Estimate the scenario of buying in the after hours at the 
 
@@ -2201,10 +2275,11 @@ px.line(pltr_df_day, x=pltr_df_day.index, y="Close")
 
 #%%   #####################             ################
 #%%
-intc_stock = yf.Ticker("PPG")
+intc_stock = yf.Ticker("SIDU")
 
-intc_prepost =intc_stock.history(start="2025-01-19", prepost=True,
-                                  interval='1m'
+intc_prepost =intc_stock.history(start="2025-01-20", prepost=True,
+                                  interval='1m', 
+                                  period='8d',
                                   )
 intc_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(intc_prepost)
 
@@ -2223,7 +2298,7 @@ after_hrs_res["profit_lose_percent_list"]
 #%%
 print(f"buy price: {after_hrs_res['buy_price_list']}")
 
-print(f"sell rpice: {after_hrs_res['sell_price_list']}")
+print(f"sell price: {after_hrs_res['sell_price_list']}")
 #%%
 print(f"buy day: {after_hrs_res['buy_day_list']}")
 
@@ -2245,7 +2320,7 @@ premarket_str_res = use_premarket_low_to_buy_regular_low(intc_prepost)
 premarket_str_res["profit_lose_percent_list"]
 
 #%%
-premarket_str_res.keys()
+#premarket_str_res.keys()
 
 #%%
 premarket_str_res["buy_price_list"]
@@ -2262,18 +2337,24 @@ premarket_str_res["sell_day_list"]
 
 #%%
 
-selected_premarket_stocks = ["APP", "SMIC", "NOW", "QBTS", "RGTI", "LAES",
-                             "AVGO", "SAP", "JPM", "NFLX"
+selected_premarket_stocks = ["APP", "SMCI", "NOW", "QBTS", 
+                             "RGTI", "LAES",
+                             "AVGO", "SAP", "JPM", "NFLX",
                              "PEP", "WMT", "WDAY", "PLTR", "CRNC",
                              "QUBT", "AI", "HSAI", "LLY", "TSM", 
-                             "BLK", "MSTR", "MCD"; "LOW",
+                             "BLK", "MSTR", "MCD", "LOW",
                              "PG", "WKEY", "TMO", "MPW", "SCHW",
-                             "SSTK", "DDD", "AIR"; "NSANY", "EQT",
+                             "SSTK", "DDD", "AIR", "NSANY", "EQT",
                              "RR", "VRME", "CLSK", "TSLA", "META",
                              "AMZN", "GOOGL", "COIN", "ADP",
                              "CSCO", "JNJ", "NUE", "TROW",
-                             "SYY", "GWW", "AZN", "NVAX", "MRNA";
-                             "NVS", "BNTX", "GME", "AMC", "ZM"
+                             "SYY", "GWW", "AZN", "NVAX", "MRNA",
+                             "NVS", "BNTX", "GME", "AMC", "ZM",
+                             "ALUR", 
+                             "MSFT", "LUNR", "RKLB",
+                             "SERV", "BEN", "SBUX", "DUK",
+                             "C", "SIDU"
+                             
                              ]
 #%%
 selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO", 
@@ -2289,7 +2370,8 @@ selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO",
                    "SSTK", "AIR", "EQT", "VRME", "CLSK",
                    "AAPL", "ADP", "CSCO", "SOFI", "NUE",
                    "ITW", "TROW", "SYY", "GWW", "AZN",
-                   "MRK", "NVS", "BNTX", "AMC","ZM"
+                   "MRK", "NVS", "BNTX", "AMC","ZM",
+                   "MSFT", "SIDU"
                 
                    ]
 
@@ -2450,6 +2532,15 @@ and sell for profit next day -- Tools not ready
 
 
 # TODO:
-# Add option to include extended perods to the fater market and premarket buy algorithms
+# Add option to include extended perods to the after market and premarket buy algorithms
 
+# explore statistical analysis to decide whether to execute an 
+# setup. Eg if the lowest price in premarket below the average by 
+# a certain amount or use the std
+
+
+# TODO: Add strategy results to app
+# select a stock, a strategy and show the results
+# Add a screener that access a strategy for several stocks 
+# return the best performers -- consider predefine the stocks
 
