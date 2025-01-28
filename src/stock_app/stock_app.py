@@ -664,7 +664,9 @@ def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
         
 
 @app.callback(Output(component_id="id_strategy_backtest_results", component_property="children"),
-              Input()) 
+              Input(component_id="id_strategy_stock_ticker", component_property="value"),
+              Input(component_id="id_strategy_type", component_property="value"),
+              Input(component_id="id_strategy_target", component_property="id_strategy_target")) 
 
 
 
@@ -1637,6 +1639,9 @@ nvda.tail(50)
 
 from dataclasses import dataclass
 
+# Deuteronomy 10:17
+# Ephesians 6:12
+
 #%%
 """
 for LAES, there is a band of .90 to .02 that can is observed
@@ -2275,9 +2280,9 @@ px.line(pltr_df_day, x=pltr_df_day.index, y="Close")
 
 #%%   #####################             ################
 #%%
-intc_stock = yf.Ticker("SIDU")
+intc_stock = yf.Ticker("QUBT")
 
-intc_prepost =intc_stock.history(start="2025-01-20", prepost=True,
+intc_prepost =intc_stock.history(start="2025-01-27", prepost=True,
                                   interval='1m', 
                                   period='8d',
                                   )
@@ -2336,7 +2341,7 @@ premarket_str_res["sell_day_list"]
 
 
 #%%
-
+monitor_premarket_stocks = ["QBTS", "WKEY"]
 selected_premarket_stocks = ["APP", "SMCI", "NOW", "QBTS", 
                              "RGTI", "LAES",
                              "AVGO", "SAP", "JPM", "NFLX",
@@ -2375,6 +2380,7 @@ selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO",
                 
                    ]
 
+#!/usr/bin/env XRP
 # %%
 import yfinance as yf
 import pandas as pd
