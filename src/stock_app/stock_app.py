@@ -666,8 +666,105 @@ def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
 @app.callback(Output(component_id="id_strategy_backtest_results", component_property="children"),
               Input(component_id="id_strategy_stock_ticker", component_property="value"),
               Input(component_id="id_strategy_type", component_property="value"),
-              Input(component_id="id_strategy_target", component_property="id_strategy_target")) 
+              Input(component_id="id_strategy_target", component_property="value"),
+              Input(component_id="id_strategy_exclusion", component_property="value"),
+              Input(component_id="id_strategy_date", component_property="start_date"),
+              Input(component_id="id_strategy_date", component_property="end_date"),
+              Input(component_id="id_backtest", component_property="n_clicks")
+              
+              ) 
+def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
+                                  exclude_last_date, start_date, end_date, backtest_click
+                                  ):
+    if backtest_click:
+        stock_data = yf.Ticker(stock_ticker)
 
+        stock_data_prepost =intc_stock.history(start=start_date, end=end_date,
+                                         prepost=True,
+                                        interval='1m', 
+                                        period='8d',
+                                        )
+        if exclude_last_date:
+            last_date = stock_data_prepost.index.date[-1]
+            stock_data_prepost = stock_data_prepost[stock_data_prepost.index.date != last_date]
+        
+        if strategy_type == "reg_lw_after":   
+            proba_res = cal_proba_low_regular_in_after_hours(stock_data_prepost)
+            strategy_res = buy_from_afterhrs(stock_data_prepost)
+        elif strategy_type == "pr_lw_reg":
+            strategy_res = use_premarket_low_to_buy_regular_low(stock_data_prepost)
+            
+        proba = proba_res["probability"]
+        
+        
+
+        profit_lost_percent = strategy_res["profit_lose_percent_list"]
+        buy_price = strategy_res['buy_price_list']
+        sell_price = strategy_res['sell_price_list']
+        buy_day = strategy_res['buy_day_list']
+        sell_day = strategy_res['sell_day_list']
+        
+        profit_loss_title = dbc.Row(html.H4("Profit / Loss (%)"))
+        if profit_lost_percent:
+            profit_loss_children = [dbc.Row(dbc.Badge(pl)) for pl in profit_lost_percent]
+            
+        else:
+            profit_loss_children= dbc.Row(dbc.Badge("No profit nor loss"))
+        profit_loss_col = dbc.Col(children=[profit_loss_title, profit_loss_children])
+            
+        buy_date_title = dbc.Row(html.H4("Buy Date"))
+        if buy_day:
+            buy_date_children = [dbc.Row(dbc.Badge(dt)) for dt in buy_day]
+        else:
+            buy_date_children = dbc.Row(dbc.Badge("No trigger"))
+        buy_date_col = dbc.Col(children=[buy_date_title, buy_date_children])
+        
+        buy_price_title = dbc.Row(html.H4("Buy Price"))
+        if buy_price:
+            buy_price_children = [dbc.Row(dbc.Badge(price)) for price in buy_price]
+        else:
+            buy_price_children = dbc.Row(dbc.Badge("No trigger"))
+        buy_price_col = dbc.Col(children=[buy_price_title, buy_price_children])
+        
+        # def create_strategy_components(strategy_result: dict):
+        #     profit_lost_percent = strategy_res["profit_lose_percent_list"]
+        #     buy_price = strategy_res['buy_price_list']
+        #     sell_price = strategy_res['sell_price_list']
+        #     buy_day = strategy_res['buy_day_list']
+        #     sell_day = strategy_res['sell_day_list']
+            
+        #     buy_date_title = dbc.Row(html.H4("Buy Date"))
+        #     if buy_day:
+        #         buy_date_children = [dbc.Row(dbc.Badge(dt)) for dt in buy_day]
+        #     else:
+        #         buy_date_children = dbc.Row(dbc.Badge("No trigger"))
+        #     buy_date_col = dbc.Col(children=[buy_date_title, buy_date_children])
+
+        
+        sell_date_title = dbc.Row(html.H4("Sell Date"))
+        if sell_day:
+            sell_date_children = [dbc.Row(dbc.Badge(dt)) for dt in sell_day]
+        else:
+            sell_date_children = dbc.Row(dbc.Badge("No trigger"))
+        sell_date_col = dbc.Col(children=[sell_date_title, sell_date_children])
+        
+        sell_price_title = dbc.Row(html.H4("Sell Price"))
+        if sell_price:
+            sell_price_children = [dbc.Row(dbc.Badge(price)) for price in sell_price]
+        else:
+            sell_price_children = dbc.Row(dbc.Badge("No trigger"))
+        sell_price_col = dbc.Col(children=[sell_price_title, sell_price_children])
+        
+        
+        strategy_components = dbc.Row(children=[dbc.Col(buy_date_col),
+                                                dbc.Col(sell_date_col),
+                                                dbc.Col(buy_price_col),
+                                                dbc.Col(sell_price_col),
+                                                dbc.Col(profit_loss_col)
+                                                ]
+                                      )
+        
+        return strategy_components
 
 
 
@@ -1518,7 +1615,7 @@ def high_low_diff(df):
 
 high_low_diff(laes)
 #%%
-laes[laes["int_low_open_pct_change"] == -3]["High"].mean() - laes[laes["int_low_open_pct_change"] == -3]["Low"].mean() 
+#laes[laes["int_low_open_pct_change"] == -3]["High"].mean() - laes[laes["int_low_open_pct_change"] == -3]["Low"].mean() 
 
 
 #%%
@@ -2280,7 +2377,7 @@ px.line(pltr_df_day, x=pltr_df_day.index, y="Close")
 
 #%%   #####################             ################
 #%%
-intc_stock = yf.Ticker("QUBT")
+intc_stock = yf.Ticker("UPST")
 
 intc_prepost =intc_stock.history(start="2025-01-27", prepost=True,
                                   interval='1m', 
@@ -2341,7 +2438,10 @@ premarket_str_res["sell_day_list"]
 
 
 #%%
-monitor_premarket_stocks = ["QBTS", "WKEY"]
+monitor_premarket_stocks = ["QBTS", "WKEY", "APP", "HSAI", "CRNC",
+                            "QUBT", "DDD", "RKLB", "NUE", "RGTI"
+                            ]
+
 selected_premarket_stocks = ["APP", "SMCI", "NOW", "QBTS", 
                              "RGTI", "LAES",
                              "AVGO", "SAP", "JPM", "NFLX",
@@ -2358,7 +2458,7 @@ selected_premarket_stocks = ["APP", "SMCI", "NOW", "QBTS",
                              "ALUR", 
                              "MSFT", "LUNR", "RKLB",
                              "SERV", "BEN", "SBUX", "DUK",
-                             "C", "SIDU"
+                             "C", "SIDU", "UPST"
                              
                              ]
 #%%
