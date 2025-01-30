@@ -23,6 +23,188 @@ import numpy as np
 #from model_trainer import Model_Trainer, Transformer, plot_loss, expand_dates_excluding_weekends
 import tensorflow as tf
 
+
+def cal_proba_low_regular_in_after_hours(df):
+    case_count = 0
+    all_count = 0
+    case_date = []
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    #regular_hrs = df[(df.index >= market_open) and (df.index <= market_close)]
+    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+    reg_df = df[df.index.isin(reguhr)]
+    unique_date = np.unique(df.index.date)
+    afterhr_df = df[df.index.time >= market_close]
+    
+    for item in unique_date:
+        day_reguhr = reg_df[reg_df.index.date == item]
+        day_afterhr = afterhr_df[afterhr_df.index.date == item]
+        day_reguhr_Lowmin = day_reguhr["Close"].min()
+        day_afterhr_Lowmin = day_afterhr["Close"].min()
+        #cases = day_afterhr[day_afterhr["Low"].min() <= day_reguhr_Lowmin]
+        if day_afterhr_Lowmin <= day_reguhr_Lowmin:
+            print(f"day_afterhr_Lowmin : {day_afterhr_Lowmin}")
+            print(f"day_reguhr_Lowmin : {day_reguhr_Lowmin}")
+            case_count += 1
+            all_count += 1
+            case_date.append(item)
+        else:
+            all_count += 1
+    if case_count > 0:
+        proba = (case_count / all_count) * 100
+    else:
+        proba = 0.0
+    return {"probability": proba,
+            "case_date": case_date
+            }
+    
+
+#%% TODO: Add plots with horizontal lines  showing the lowest price
+# in regular hours and a vertical line showing when it went long 
+# in after hours and another vertical for sell time
+def buy_from_afterhrs(df, profit_percent=1):
+    """Estimate the scenario of buying in the after hours at the 
+
+    Args:
+        df (_type_): _description_
+        profit_percent (int, optional): _description_. Defaults to 1.
+
+    Returns:
+        _type_: _description_
+    """
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    #regular_hrs = df[(df.index >= market_open) and (df.index <= market_close)]
+    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+    reg_df = df[df.index.isin(reguhr)]
+    unique_date = np.unique(df.index.date)
+    afterhr_df = df[df.index.time >= market_close]
+    buy_price_list = []
+    buy_day_list = []
+    sell_price_list = []
+    sell_day_list = []
+    profit_lose_list = []
+    profit_lose_percent_list = []
+    for item in unique_date:
+        day_reguhr = reg_df[reg_df.index.date == item]
+        day_afterhr = afterhr_df[afterhr_df.index.date == item]
+        day_reguhr_Lowmin = day_reguhr["Close"].min()
+        #print(f"day_reguhr_Lowmin : {day_reguhr_Lowmin}")
+        enter_post = False
+        buy_price = 0
+        exit_price = 0
+        exit_post = False
+        for row_index, row_data in day_afterhr.iterrows():
+            if not enter_post:
+                if row_data["Close"] <= day_reguhr_Lowmin:
+                    if row_index == day_afterhr.index[-1]:
+                        print(f"Not bought because it is last time of after hours {row_index}")
+                    else:
+                        buy_price = row_data["Close"]
+                        buy_price_list.append(buy_price)
+                        buy_day_list.append(row_index)
+                        enter_post = True
+                        exit_price = ((100 + profit_percent)/100) * buy_price
+            elif enter_post:
+                if not exit_post:
+                    if row_data["Close"] >= exit_price:
+                        sell_price = row_data["Close"]
+                        sell_price_list.append(sell_price)
+                        sell_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        exit_post = True
+                        profit = ((sell_price - buy_price)/buy_price) * 100
+                        profit_lose_percent_list.append(profit)
+                    elif row_index == day_afterhr.index[-1]:
+                        sell_price = row_data["Close"]
+                        sell_price_list.append(sell_price)
+                        sell_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        enter_post = False
+                        profit = ((sell_price - buy_price)/buy_price) * 100
+                        profit_lose_percent_list.append(profit)
+    return {"buy_price_list": buy_price_list,
+            "buy_day_list": buy_day_list,
+            "sell_price_list": sell_price_list,
+            "sell_day_list": sell_day_list,
+            "profit_lose_list": profit_lose_list,
+            "profit_lose_percent_list": profit_lose_percent_list
+            }          
+                   
+
+#%%
+def use_premarket_low_to_buy_regular_low(df, profit_percent=1):
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    
+    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+    reg_df = df[df.index.isin(reguhr)]
+    unique_date = np.unique(df.index.date)
+    
+    premarket_df = df[df.index.time <= market_open]
+    buy_price_list = []
+    buy_day_list = []
+    sell_price_list = []
+    sell_day_list = []
+    profit_lose_list = []
+    profit_lose_percent_list = []
+    
+    for item in unique_date:
+        day_reguhr = reg_df[reg_df.index.date == item]
+        day_premarket = premarket_df[premarket_df.index.date == item]
+        day_premarket_Lowmin = day_premarket["Close"].min()
+        enter_post = False
+        buy_price = 0
+        exit_price = 0
+        exit_post = False
+        for row_index, row_data in day_reguhr.iterrows():
+            if not enter_post:
+                if row_data["Close"] <= day_premarket_Lowmin:
+                    buy_price = row_data["Close"]
+                    buy_price_list.append(buy_price)
+                    buy_day_list.append(row_index)
+                    enter_post = True
+                    exit_price = ((100 + profit_percent)/100) * buy_price
+            elif enter_post:
+                if not exit_post:
+                    if row_data["Close"] >= exit_price:
+                        sell_price = row_data["Close"]
+                        sell_price_list.append(sell_price)
+                        sell_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        exit_post = True
+                        profit = ((sell_price - buy_price)/buy_price) * 100
+                        profit_lose_percent_list.append(profit)
+                    elif row_index == day_reguhr.index[-1]:
+                        sell_price = row_data["Close"]
+                        sell_price_list.append(sell_price)
+                        sell_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        enter_post = False
+                        profit = ((sell_price - buy_price)/buy_price) * 100
+                        profit_lose_percent_list.append(profit)
+    return {"buy_price_list": buy_price_list,
+            "buy_day_list": buy_day_list,
+            "sell_price_list": sell_price_list,
+            "sell_day_list": sell_day_list,
+            "profit_lose_list": profit_lose_list,
+            "profit_lose_percent_list": profit_lose_percent_list
+            }          
+                
+    
+
+def cal_proba_premarket_low_in_regular_hr(df):
+    pass
+
+
+
 card_icon = {
     "color": "#0088BC",
     "textAlign": "center",
@@ -525,11 +707,11 @@ strategy_layout = html.Div(children=[
 
 app.layout = appside_layout
 
-app.validation_layout = html.Div([appside_layout, stockprice_layout, main_layout, 
+app.validation_layout = [appside_layout, stockprice_layout, main_layout, 
                                   train_config_layout, model_performance, 
-                                  prediction_config_layout
+                                  prediction_config_layout #, strategy_layout
                                   ]
-                                )
+                                #)
 
 def create_portfolio_graphs(company_ticker):
     head_component = [dbc.Row(dcc.DatePickerRange(id="id_portfolio_date")), html.Br(),]
@@ -679,7 +861,7 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
     if backtest_click:
         stock_data = yf.Ticker(stock_ticker)
 
-        stock_data_prepost =intc_stock.history(start=start_date, end=end_date,
+        stock_data_prepost =stock_data.history(start=start_date, end=end_date,
                                          prepost=True,
                                         interval='1m', 
                                         period='8d',
@@ -694,7 +876,7 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
         elif strategy_type == "pr_lw_reg":
             strategy_res = use_premarket_low_to_buy_regular_low(stock_data_prepost)
             
-        proba = proba_res["probability"]
+        #proba = proba_res["probability"]
         
         
 
@@ -877,7 +1059,8 @@ def show_model_config_dialog(model_config_button_click, prediction_config_button
               Input(component_id="id_steps_per_epoch", component_property="value"),
               Input(component_id="id_val_steps", component_property="value"),
               Input(component_id="id_trained_model_path", component_property="data"),
-              Input(component_id="id_model_type", component_property="value")
+              Input(component_id="id_model_type", component_property="value"),
+              
               )  
 def train_model(train_size, save_model_as, #val_size, test_size, 
                 window_size, horizon_size, buffer_size,
@@ -1072,7 +1255,7 @@ def make_prediction(start_date, end_date, stock_ticker, model_name,
 # https://www.sap.com/investors/en/stock.html
 
 if __name__ == "__main__":
-    app.run_server(port=8040)
+    app.run_server(port=8011, debug=True)
 
 # %%
 (107/100)*7.6
@@ -2086,184 +2269,6 @@ after_hours_data = hist[hist['Datetime'].dt.time >= market_close]
 # by ensuring price rise in the after_hours or premarket of the following
 # day after hitting the low from regular hours
 
-def cal_proba_low_regular_in_after_hours(df):
-    case_count = 0
-    all_count = 0
-    case_date = []
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    #regular_hrs = df[(df.index >= market_open) and (df.index <= market_close)]
-    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-    reg_df = df[df.index.isin(reguhr)]
-    unique_date = np.unique(df.index.date)
-    afterhr_df = df[df.index.time >= market_close]
-    
-    for item in unique_date:
-        day_reguhr = reg_df[reg_df.index.date == item]
-        day_afterhr = afterhr_df[afterhr_df.index.date == item]
-        day_reguhr_Lowmin = day_reguhr["Close"].min()
-        day_afterhr_Lowmin = day_afterhr["Close"].min()
-        #cases = day_afterhr[day_afterhr["Low"].min() <= day_reguhr_Lowmin]
-        if day_afterhr_Lowmin <= day_reguhr_Lowmin:
-            print(f"day_afterhr_Lowmin : {day_afterhr_Lowmin}")
-            print(f"day_reguhr_Lowmin : {day_reguhr_Lowmin}")
-            case_count += 1
-            all_count += 1
-            case_date.append(item)
-        else:
-            all_count += 1
-    if case_count > 0:
-        proba = (case_count / all_count) * 100
-    else:
-        proba = 0.0
-    return {"probability": proba,
-            "case_date": case_date
-            }
-    
-
-#%% TODO: Add plots with horizontal lines  showing the lowest price
-# in regular hours and a vertical line showing when it went long 
-# in after hours and another vertical for sell time
-def buy_from_afterhrs(df, profit_percent=1):
-    """Estimate the scenario of buying in the after hours at the 
-
-    Args:
-        df (_type_): _description_
-        profit_percent (int, optional): _description_. Defaults to 1.
-
-    Returns:
-        _type_: _description_
-    """
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    #regular_hrs = df[(df.index >= market_open) and (df.index <= market_close)]
-    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-    reg_df = df[df.index.isin(reguhr)]
-    unique_date = np.unique(df.index.date)
-    afterhr_df = df[df.index.time >= market_close]
-    buy_price_list = []
-    buy_day_list = []
-    sell_price_list = []
-    sell_day_list = []
-    profit_lose_list = []
-    profit_lose_percent_list = []
-    for item in unique_date:
-        day_reguhr = reg_df[reg_df.index.date == item]
-        day_afterhr = afterhr_df[afterhr_df.index.date == item]
-        day_reguhr_Lowmin = day_reguhr["Close"].min()
-        #print(f"day_reguhr_Lowmin : {day_reguhr_Lowmin}")
-        enter_post = False
-        buy_price = 0
-        exit_price = 0
-        exit_post = False
-        for row_index, row_data in day_afterhr.iterrows():
-            if not enter_post:
-                if row_data["Close"] <= day_reguhr_Lowmin:
-                    if row_index == day_afterhr.index[-1]:
-                        print(f"Not bought because it is last time of after hours {row_index}")
-                    else:
-                        buy_price = row_data["Close"]
-                        buy_price_list.append(buy_price)
-                        buy_day_list.append(row_index)
-                        enter_post = True
-                        exit_price = ((100 + profit_percent)/100) * buy_price
-            elif enter_post:
-                if not exit_post:
-                    if row_data["Close"] >= exit_price:
-                        sell_price = row_data["Close"]
-                        sell_price_list.append(sell_price)
-                        sell_day_list.append(row_index)
-                        profit_lose = sell_price - buy_price
-                        profit_lose_list.append(profit_lose)
-                        exit_post = True
-                        profit = ((sell_price - buy_price)/buy_price) * 100
-                        profit_lose_percent_list.append(profit)
-                    elif row_index == day_afterhr.index[-1]:
-                        sell_price = row_data["Close"]
-                        sell_price_list.append(sell_price)
-                        sell_day_list.append(row_index)
-                        profit_lose = sell_price - buy_price
-                        profit_lose_list.append(profit_lose)
-                        enter_post = False
-                        profit = ((sell_price - buy_price)/buy_price) * 100
-                        profit_lose_percent_list.append(profit)
-    return {"buy_price_list": buy_price_list,
-            "buy_day_list": buy_day_list,
-            "sell_price_list": sell_price_list,
-            "sell_day_list": sell_day_list,
-            "profit_lose_list": profit_lose_list,
-            "profit_lose_percent_list": profit_lose_percent_list
-            }          
-                   
-
-#%%
-def use_premarket_low_to_buy_regular_low(df, profit_percent=1):
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    
-    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-    reg_df = df[df.index.isin(reguhr)]
-    unique_date = np.unique(df.index.date)
-    
-    premarket_df = df[df.index.time <= market_open]
-    buy_price_list = []
-    buy_day_list = []
-    sell_price_list = []
-    sell_day_list = []
-    profit_lose_list = []
-    profit_lose_percent_list = []
-    
-    for item in unique_date:
-        day_reguhr = reg_df[reg_df.index.date == item]
-        day_premarket = premarket_df[premarket_df.index.date == item]
-        day_premarket_Lowmin = day_premarket["Close"].min()
-        enter_post = False
-        buy_price = 0
-        exit_price = 0
-        exit_post = False
-        for row_index, row_data in day_reguhr.iterrows():
-            if not enter_post:
-                if row_data["Close"] <= day_premarket_Lowmin:
-                    buy_price = row_data["Close"]
-                    buy_price_list.append(buy_price)
-                    buy_day_list.append(row_index)
-                    enter_post = True
-                    exit_price = ((100 + profit_percent)/100) * buy_price
-            elif enter_post:
-                if not exit_post:
-                    if row_data["Close"] >= exit_price:
-                        sell_price = row_data["Close"]
-                        sell_price_list.append(sell_price)
-                        sell_day_list.append(row_index)
-                        profit_lose = sell_price - buy_price
-                        profit_lose_list.append(profit_lose)
-                        exit_post = True
-                        profit = ((sell_price - buy_price)/buy_price) * 100
-                        profit_lose_percent_list.append(profit)
-                    elif row_index == day_reguhr.index[-1]:
-                        sell_price = row_data["Close"]
-                        sell_price_list.append(sell_price)
-                        sell_day_list.append(row_index)
-                        profit_lose = sell_price - buy_price
-                        profit_lose_list.append(profit_lose)
-                        enter_post = False
-                        profit = ((sell_price - buy_price)/buy_price) * 100
-                        profit_lose_percent_list.append(profit)
-    return {"buy_price_list": buy_price_list,
-            "buy_day_list": buy_day_list,
-            "sell_price_list": sell_price_list,
-            "sell_day_list": sell_day_list,
-            "profit_lose_list": profit_lose_list,
-            "profit_lose_percent_list": profit_lose_percent_list
-            }          
-                
-    
-
-def cal_proba_premarket_low_in_regular_hr(df):
-    pass
     
 #%%
 
@@ -2377,7 +2382,7 @@ px.line(pltr_df_day, x=pltr_df_day.index, y="Close")
 
 #%%   #####################             ################
 #%%
-intc_stock = yf.Ticker("UPST")
+intc_stock = yf.Ticker("CRNC")
 
 intc_prepost =intc_stock.history(start="2025-01-27", prepost=True,
                                   interval='1m', 
@@ -2413,6 +2418,8 @@ intc_df_day = intc_prepost[intc_prepost.index.date == intc_lowreg_in_afterhr["ca
 
 px.line(intc_df_day, x=intc_df_day.index, y="Close")
 
+#%%
+px.line(intc_prepost, x=intc_prepost.index, y="Close")
 
 
 #%%
@@ -2439,9 +2446,11 @@ premarket_str_res["sell_day_list"]
 
 #%%
 monitor_premarket_stocks = ["QBTS", "WKEY", "APP", "HSAI", "CRNC",
-                            "QUBT", "DDD", "RKLB", "NUE", "RGTI"
+                            "QUBT", "DDD", "RKLB", "NUE", "RGTI",
+                            "BBAI", "GWW", "TROW",
                             ]
 
+short_sell = ["SSTK", "MPW"]
 selected_premarket_stocks = ["APP", "SMCI", "NOW", "QBTS", 
                              "RGTI", "LAES",
                              "AVGO", "SAP", "JPM", "NFLX",
@@ -2461,6 +2470,8 @@ selected_premarket_stocks = ["APP", "SMCI", "NOW", "QBTS",
                              "C", "SIDU", "UPST"
                              
                              ]
+
+#%% train a model for detecting stocks to trade for premarket and regular
 #%%
 selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO", 
                    "NFLX", "SAP", "IBM", "WMT",
