@@ -2475,7 +2475,9 @@ premarket_str_res["sell_day_list"]
 #%%
 monitor_premarket_stocks = ["QBTS", "WKEY", "APP", "HSAI", "CRNC",
                             "QUBT", "DDD", "RKLB", "NUE", "RGTI",
-                            "BBAI", "GWW", "TROW",
+                            "BBAI", "GWW", "TROW", "COIN", "MARA",
+                            "RR", "NNE"
+                    
                             ]
 
 short_sell = ["SSTK", "MPW"]
@@ -2495,7 +2497,8 @@ selected_premarket_stocks = ["APP", "SMCI", "NOW", "QBTS",
                              "ALUR", 
                              "MSFT", "LUNR", "RKLB",
                              "SERV", "BEN", "SBUX", "DUK",
-                             "C", "SIDU", "UPST"
+                             "C", "SIDU", "UPST", "HOOD", "RDW", "BABA",
+                             "MARA", "NNE"
                              
                              ]
 
@@ -2515,7 +2518,7 @@ selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO",
                    "AAPL", "ADP", "CSCO", "SOFI", "NUE",
                    "ITW", "TROW", "SYY", "GWW", "AZN",
                    "MRK", "NVS", "BNTX", "AMC","ZM",
-                   "MSFT", "SIDU"
+                   "MSFT", "SIDU", "NNN"
                 
                    ]
 
@@ -2548,6 +2551,37 @@ low_open_diff(data)
 (4.45/4.99)*100
 # %%
 (89/100)*4.99
+
+
+
+
+#%%
+import plotly.express as px
+import pandas as pd
+
+# Find the new minimum as time proceeds
+new_minimums = []
+current_min = float('inf')
+for index, row in historical_data.iterrows():
+    if row['Close'] < current_min:
+        current_min = row['Close']
+    new_minimums.append(current_min)
+
+historical_data['new_minimum'] = new_minimums
+
+# Plot the stock data and new minimum line
+fig = px.line(
+    historical_data,
+    x=historical_data.index,
+    y=['Close', 'new_minimum'],
+    title='Stock Price and New Minimum Line',
+    labels={'value': 'Price', 'variable': 'Metric'},
+    markers=True
+)
+fig.show()
+
+
+
 # %%
 
 import pandas as pd
