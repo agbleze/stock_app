@@ -862,10 +862,10 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
         stock_data = yf.Ticker(stock_ticker)
 
         stock_data_prepost =stock_data.history(start=start_date, end=end_date,
-                                         prepost=True,
-                                        interval='1m', 
-                                        period='8d',
-                                        )
+                                                prepost=True,
+                                                interval='1m', 
+                                                period='8d',
+                                                )
         if exclude_last_date:
             last_date = stock_data_prepost.index.date[-1]
             stock_data_prepost = stock_data_prepost[stock_data_prepost.index.date != last_date]
@@ -874,7 +874,9 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
             proba_res = cal_proba_low_regular_in_after_hours(stock_data_prepost)
             strategy_res = buy_from_afterhrs(stock_data_prepost)
         elif strategy_type == "pr_lw_reg":
-            strategy_res = use_premarket_low_to_buy_regular_low(stock_data_prepost)
+            strategy_res = use_premarket_low_to_buy_regular_low(stock_data_prepost,
+                                                                profit_percent=strategy_target
+                                                                )
             
         #proba = proba_res["probability"]
         
@@ -888,25 +890,44 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
         
         profit_loss_title = dbc.Row(html.H4("Profit / Loss (%)"))
         if profit_lost_percent:
-            profit_loss_children = [dbc.Row(dbc.Badge(pl)) for pl in profit_lost_percent]
+            profit_loss_children = [dbc.Row(dbc.Badge(pl, color="danger")) 
+                                    if pl < 0 else dbc.Row(dbc.Badge(pl, color="success"))
+                                    for pl in profit_lost_percent
+                                    ]
             
         else:
-            profit_loss_children= dbc.Row(dbc.Badge("No profit nor loss"))
-        profit_loss_col = dbc.Col(children=[profit_loss_title, profit_loss_children])
+            profit_loss_children= [dbc.Row(dbc.Badge("No profit nor loss"))]
+        profit_loss_col_children = [profit_loss_title]
+        for item in profit_loss_children:
+            profit_loss_col_children.append(item)
+            profit_loss_col_children.append(html.Br())
+        profit_loss_col = dbc.Col(children=profit_loss_col_children)
             
         buy_date_title = dbc.Row(html.H4("Buy Date"))
         if buy_day:
             buy_date_children = [dbc.Row(dbc.Badge(dt)) for dt in buy_day]
         else:
-            buy_date_children = dbc.Row(dbc.Badge("No trigger"))
-        buy_date_col = dbc.Col(children=[buy_date_title, buy_date_children])
+            buy_date_children = [dbc.Row(dbc.Badge("No trigger"))]
+        
+        buy_date_col_children = [buy_date_title]
+        for item in buy_date_children:
+            buy_date_col_children.append(item)
+            buy_date_col_children.append(html.Br())
+        buy_date_col = dbc.Col(children=buy_date_col_children)
         
         buy_price_title = dbc.Row(html.H4("Buy Price"))
         if buy_price:
             buy_price_children = [dbc.Row(dbc.Badge(price)) for price in buy_price]
         else:
-            buy_price_children = dbc.Row(dbc.Badge("No trigger"))
-        buy_price_col = dbc.Col(children=[buy_price_title, buy_price_children])
+            buy_price_children = [dbc.Row(dbc.Badge("No trigger"))]
+        
+        buy_price_col_children = [buy_price_title]
+        
+       
+        for item in buy_price_children:
+            buy_price_col_children.append(item)
+            buy_price_col_children.append(html.Br())
+        buy_price_col = dbc.Col(children=buy_price_col_children)
         
         # def create_strategy_components(strategy_result: dict):
         #     profit_lost_percent = strategy_res["profit_lose_percent_list"]
@@ -927,16 +948,23 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
         if sell_day:
             sell_date_children = [dbc.Row(dbc.Badge(dt)) for dt in sell_day]
         else:
-            sell_date_children = dbc.Row(dbc.Badge("No trigger"))
-        sell_date_col = dbc.Col(children=[sell_date_title, sell_date_children])
+            sell_date_children = [dbc.Row(dbc.Badge("No trigger"))]
+        sell_date_col_children = [sell_date_title]
+        for item in sell_date_children:
+            sell_date_col_children.append(item)
+            sell_date_col_children.append(html.Br())
+        sell_date_col = dbc.Col(children=sell_date_col_children)
         
         sell_price_title = dbc.Row(html.H4("Sell Price"))
         if sell_price:
             sell_price_children = [dbc.Row(dbc.Badge(price)) for price in sell_price]
         else:
-            sell_price_children = dbc.Row(dbc.Badge("No trigger"))
-        sell_price_col = dbc.Col(children=[sell_price_title, sell_price_children])
-        
+            sell_price_children = [dbc.Row(dbc.Badge("No trigger"))]
+        sell_price_col_children = [sell_price_title]
+        for item in sell_price_children:
+            sell_price_col_children.append(item)
+            sell_price_col_children.append(html.Br())
+        sell_price_col = dbc.Col(children=sell_price_col_children)
         
         strategy_components = dbc.Row(children=[dbc.Col(buy_date_col),
                                                 dbc.Col(sell_date_col),
