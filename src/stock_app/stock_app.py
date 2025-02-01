@@ -137,7 +137,7 @@ def buy_from_afterhrs(df, profit_percent=1):
                    
 
 #%%
-def use_premarket_low_to_buy_regular_low(df, profit_percent=1):
+def use_premarket_low_to_buy_regular_low(df, profit_percent=1, percent_to_reduce_premarket_low=0):
     market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
     market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
     
@@ -158,6 +158,12 @@ def use_premarket_low_to_buy_regular_low(df, profit_percent=1):
         day_reguhr = reg_df[reg_df.index.date == item]
         day_premarket = premarket_df[premarket_df.index.date == item]
         day_premarket_Lowmin = day_premarket["Close"].min()
+        
+        if percent_to_reduce_premarket_low > 0:
+            day_premarket_Lowmin = ((100 - float(day_premarket_Lowmin) / 100)
+                                    * day_premarket_Lowmin
+                                    )
+            
         enter_post = False
         buy_price = 0
         exit_price = 0
@@ -2559,26 +2565,73 @@ low_open_diff(data)
 import plotly.express as px
 import pandas as pd
 
+import yfinance as yf
+
+# Define the stock ticker
+ticker_symbol = 'IONQ'  # Apple Inc.
+
+# Fetch historical data
+historical_data = yf.download(ticker_symbol, period='1d', interval='1m',
+                              start="2025-01-27")
+#print(historical_data.head())
+
+
 # Find the new minimum as time proceeds
-new_minimums = []
-current_min = float('inf')
-for index, row in historical_data.iterrows():
-    if row['Close'] < current_min:
-        current_min = row['Close']
-    new_minimums.append(current_min)
+# new_minimums = []
+# current_min = float('inf')
+# for index, row in historical_data.iterrows():
+#     if row['Close'] < current_min:
+#         current_min = row['Close']
+#     new_minimums.append(current_min)
 
-historical_data['new_minimum'] = new_minimums
+# historical_data['new_minimum'] = new_minimums
 
-# Plot the stock data and new minimum line
-fig = px.line(
-    historical_data,
-    x=historical_data.index,
-    y=['Close', 'new_minimum'],
-    title='Stock Price and New Minimum Line',
-    labels={'value': 'Price', 'variable': 'Metric'},
-    markers=True
-)
-fig.show()
+
+def create_new_lows(df, target_col="Close"):
+    if target_col not in df.columns:
+        raise ValueError(f"Target column '{target_col}' not found in the DataFrame")
+    new_minimums = []
+    current_min = float('inf')
+    for index, row in df.iterrows():
+        if row[target_col] < current_min:
+            current_min = row[target_col]
+        new_minimums.append(current_min)
+    df['new_minimum'] = new_minimums
+    return df
+
+def create_new_highs(df, target_col="Close"):
+    if target_col not in df.columns:
+        raise ValueError(f"Target column '{target_col}' not found in the DataFrame")
+    new_maximums = []
+    current_max = float('-inf')
+    for index, row in df.iterrows():
+        if row[target_col] > current_max:
+            current_max = row[target_col]
+        new_maximums.append(current_max)
+    df['new_maximum'] = new_maximums
+    return df
+    
+
+#%%
+unique_date = np.unique(historical_data.index.date)
+
+for day in unique_date:
+    #day = unique_date[2]
+    df = historical_data[historical_data.index.date==day]
+    df = create_new_lows(df=df) 
+
+    df = create_new_highs(df=df)
+    
+    ##%% Plot the stock data and new minimum line
+    fig = px.line(
+        df,
+        x=df.index,
+        y=['Close', 'new_minimum', "new_maximum"],
+        title=f'{ticker_symbol}: {day}',
+        labels={'value': 'Price', 'variable': 'Metric'},
+        #markers=True
+    )
+    fig.show()
 
 
 

@@ -1,0 +1,10 @@
+
+1. find the diff b/t previous close and current high
+NOTE
+--- this diff can serve as a markup for short selling IONQ
+++++ add the diff to the close price and short sell when price hit that point then wait for price to fall below the the current day's Open
+
+2. calculate probability that Highest occurs befor the Lowest
+
+
+3. calculate probability that previous close is higher than current low
