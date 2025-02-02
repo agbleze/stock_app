@@ -24,11 +24,29 @@ import numpy as np
 import tensorflow as tf
 
 
+# def create_strategy_components(strategy_result: dict):
+        #     profit_lost_percent = strategy_res["profit_lose_percent_list"]
+        #     buy_price = strategy_res['buy_price_list']
+        #     sell_price = strategy_res['sell_price_list']
+        #     buy_day = strategy_res['buy_day_list']
+        #     sell_day = strategy_res['sell_day_list']
+            
+        #     buy_date_title = dbc.Row(html.H4("Buy Date"))
+        #     if buy_day:
+        #         buy_date_children = [dbc.Row(dbc.Badge(dt)) for dt in buy_day]
+        #     else:
+        #         buy_date_children = dbc.Row(dbc.Badge("No trigger"))
+        #     buy_date_col = dbc.Col(children=[buy_date_title, buy_date_children])
 
-def create_trigger_plots(df, entry_point, exit_point, target_col="Close"):
+
+def create_trigger_plots(df, entry_point, exit_point, target_col="Close",
+                         title=None
+                         ):
+    if not title:
+        title = target_col
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df.index, 
-                            y=historical_data[target_col], 
+                            y=df[target_col], 
                             mode='lines', 
                             name='Stock Price'
                             )
@@ -42,11 +60,11 @@ def create_trigger_plots(df, entry_point, exit_point, target_col="Close"):
                   line_color="red", annotation_text="Exit", 
                   annotation_position="bottom right"
                   )
-    fig.update_layout(title='Stock Price',
-                        xaxis_title='Date',
-                        yaxis_title='Price',
-                        showlegend=True,
-                        template='plotly_dark'
+    fig.update_layout(title=title,
+                     xaxis_title='Date',
+                     yaxis_title='Price',
+                     showlegend=True,
+                     template='plotly_dark'
                     )
     return fig
 
@@ -70,9 +88,9 @@ def cal_proba_regular_lowest_in_after_hours(df,
         day_reguhr = reg_df[reg_df.index.date == item]
         day_afterhr = afterhr_df[afterhr_df.index.date == item]
         day_reguhr_Lowmin = day_reguhr[target_col].min()
-        day_reguhr_Lowmin = ((100 - float(percent_to_reduce_regular_lowest_price) / 100)
-                                    * day_reguhr_Lowmin
-                                    )
+        day_reguhr_Lowmin = (((100 - percent_to_reduce_regular_lowest_price) / 100)
+                            * day_reguhr_Lowmin
+                            )
         day_afterhr_Lowmin = day_afterhr[target_col].min()
         #cases = day_afterhr[day_afterhr["Low"].min() <= day_reguhr_Lowmin]
         if day_afterhr_Lowmin <= day_reguhr_Lowmin:
@@ -269,11 +287,11 @@ def cal_proba_premarket_low_in_regular_hr(df, percent_to_reduce_premarket_lowest
         curr_regular_lowmin = curr_regular_df[target_col].min()
         curr_premarket_lowmin = curr_premarket_df[target_col].min()
         if percent_to_reduce_premarket_lowest > 0:
-            curr_premarket_lowmin = ((100 - float(percent_to_reduce_premarket_lowest) / 100)
+            curr_premarket_lowmin = (((100 - percent_to_reduce_premarket_lowest) / 100)
                                     * curr_premarket_lowmin
                                     )
         #cases = day_afterhr[day_afterhr["Low"].min() <= day_reguhr_Lowmin]
-        if curr_premarket_lowmin <= curr_regular_lowmin:
+        if curr_premarket_lowmin >= curr_regular_lowmin:
             print(f"current premarket lowest : {curr_premarket_lowmin}")
             print(f"day_reguhr_Lowmin : {curr_regular_lowmin}")
             case_count += 1
@@ -602,7 +620,7 @@ def output_card(id: str = None, card_label: str =None,
                             dbc.Card(
                                     children=[
                                         dcc.Loading(type='circle', children=html.H3(id=id)),
-                                        html.P(card_label)
+                                        html.H1(card_label)
                                     ]
                                 ),
                             dbc.Card(
@@ -788,8 +806,9 @@ strategy_layout = html.Div(children=[
                 ), 
         ], 
         ),
-    html.Div("id_strategy_probability_occurrence"),
+    html.Div(id="id_strategy_probability_occurrence"),
     html.Div(id="id_strategy_backtest_results"),
+    dbc.Row(id="id_strategy_trigger_plots")
         
     ])
 
@@ -936,6 +955,7 @@ def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
 
 @app.callback(Output(component_id="id_strategy_backtest_results", component_property="children"),
               Output(component_id="id_strategy_probability_occurrence", component_property="children"),
+              Output(component_id="id_strategy_trigger_plots", component_property="children"),
               Input(component_id="id_strategy_stock_ticker", component_property="value"),
               Input(component_id="id_strategy_type", component_property="value"),
               Input(component_id="id_strategy_target", component_property="value"),
@@ -971,7 +991,15 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
             
         proba = proba_res["probability"]
         
-        proba_card = output_card(card_label=proba)
+        proba_card = output_card(card_label=proba, id="id_proba",
+                                 icon="bi bi-percent"
+                                 )
+        proba_card_tooltip = html.Div([proba_card, 
+                                        dbc.Tooltip("Probability", 
+                                                    target="id_proba"
+                                                    )
+                                        ]
+                                        )
         
 
         profit_lost_percent = strategy_res["profit_lose_percent_list"]
@@ -1020,22 +1048,7 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
             buy_price_col_children.append(item)
             buy_price_col_children.append(html.Br())
         buy_price_col = dbc.Col(children=buy_price_col_children)
-        
-        # def create_strategy_components(strategy_result: dict):
-        #     profit_lost_percent = strategy_res["profit_lose_percent_list"]
-        #     buy_price = strategy_res['buy_price_list']
-        #     sell_price = strategy_res['sell_price_list']
-        #     buy_day = strategy_res['buy_day_list']
-        #     sell_day = strategy_res['sell_day_list']
             
-        #     buy_date_title = dbc.Row(html.H4("Buy Date"))
-        #     if buy_day:
-        #         buy_date_children = [dbc.Row(dbc.Badge(dt)) for dt in buy_day]
-        #     else:
-        #         buy_date_children = dbc.Row(dbc.Badge("No trigger"))
-        #     buy_date_col = dbc.Col(children=[buy_date_title, buy_date_children])
-
-        
         sell_date_title = dbc.Row(html.H4("Sell Date"))
         if sell_day:
             sell_date_children = [dbc.Row(dbc.Badge(dt)) for dt in sell_day]
@@ -1066,10 +1079,29 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
                                                 ]
                                       )
         
-        return strategy_components, proba_card
-
-
-
+        trigger_dates = [buy_dy.date() for buy_dy in buy_day]
+        #unique_date = np.unique(df.index.date)
+        if trigger_dates:
+            print(f"trigger_dates: {trigger_dates}")
+            trigger_plot_cols = []
+            for trigger_date, entry_point, exit_point in zip(trigger_dates, buy_price, sell_price):
+                #print(f"trigger date: {trigger_date}")
+                day_stock_data = stock_data_prepost[stock_data_prepost.index.date == trigger_date]
+                #print(f"day_stock_data: ------  {day_stock_data}")
+                title = f"{stock_ticker} Long position: {trigger_date}"
+                day_trigger_plot = create_trigger_plots(df=day_stock_data, 
+                                                        entry_point=entry_point,
+                                                        exit_point=exit_point,
+                                                        title=title
+                                                        )
+                trigger_graph = dcc.Graph(figure=day_trigger_plot)
+                trigger_graph_col = dbc.Col(trigger_graph, width=6)
+                trigger_plot_cols.append(trigger_graph_col)
+        else:
+            trigger_plot_cols = []
+            
+            
+        return strategy_components, proba_card, trigger_plot_cols
 
       
 @app.callback(Output(component_id="id_sidebar_offcanvas",component_property="is_open"),
@@ -2745,43 +2777,6 @@ historical_data = ticker.history(#start="2025-01-27",
                                         period='1d',
                                         )
 
-import plotly.graph_objects as go
-
-# Define the horizontal lines
-horizontal_line1 = historical_data["Close"].min()  # Example price point for horizontal line 1
-horizontal_line2 = 42.30 #historical_data["Close"].max()  # Example price point for horizontal line 2
-
-# Select a vertical line timestamp from the data index
-#vertical_line = historical_data.loc[5, 'Date']  # Example using the 5th entry in the data
-
-# Create the plot
-fig = go.Figure()
-
-# Add the stock price line
-fig.add_trace(go.Scatter(x=historical_data.index, 
-                         y=historical_data['Close'], mode='lines', 
-                         name='Stock Price'))
-
-# Add horizontal lines
-fig.add_hline(y=horizontal_line1, line_dash="dash", line_color="green", annotation_text="Horizontal Line 1", annotation_position="bottom right")
-fig.add_hline(y=horizontal_line2, line_dash="dash", line_color="blue", annotation_text="Horizontal Line 2", annotation_position="bottom right")
-
-# Add vertical line
-#fig.add_vline(x=historical_data.index[5].timestamp() * 1000, line_dash="dash", line_color="red", annotation_text="Vertical Line", annotation_position="top right")
-
-# Customize the layout
-fig.update_layout(
-    title='Stock Price with Horizontal and Vertical Lines',
-    xaxis_title='Date',
-    yaxis_title='Price',
-    showlegend=True,
-    template='plotly_white'
-)
-
-# Show the plot
-fig.show()
-
-#%%
 
 
 
@@ -2789,6 +2784,20 @@ fig.show()
 create_trigger_plots(df=historical_data, entry_point=42.3,
                      exit_point=39.6
                      )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # %%
 
