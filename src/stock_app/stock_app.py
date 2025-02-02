@@ -24,7 +24,36 @@ import numpy as np
 import tensorflow as tf
 
 
-def cal_proba_low_regular_in_after_hours(df):
+
+def create_trigger_plots(df, entry_point, exit_point, target_col="Close"):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, 
+                            y=historical_data[target_col], 
+                            mode='lines', 
+                            name='Stock Price'
+                            )
+                  )
+    fig.add_hline(y=entry_point, line_dash="dash", 
+                  line_color="green", 
+                  annotation_text="Entry", 
+                  annotation_position="bottom right"
+                  )
+    fig.add_hline(y=exit_point, line_dash="dash", 
+                  line_color="red", annotation_text="Exit", 
+                  annotation_position="bottom right"
+                  )
+    fig.update_layout(title='Stock Price',
+                        xaxis_title='Date',
+                        yaxis_title='Price',
+                        showlegend=True,
+                        template='plotly_dark'
+                    )
+    return fig
+
+def cal_proba_regular_lowest_in_after_hours(df, 
+                                            percent_to_reduce_regular_lowest_price=0,
+                                            target_col="Close"
+                                            ):
     case_count = 0
     all_count = 0
     case_date = []
@@ -40,8 +69,11 @@ def cal_proba_low_regular_in_after_hours(df):
     for item in unique_date:
         day_reguhr = reg_df[reg_df.index.date == item]
         day_afterhr = afterhr_df[afterhr_df.index.date == item]
-        day_reguhr_Lowmin = day_reguhr["Close"].min()
-        day_afterhr_Lowmin = day_afterhr["Close"].min()
+        day_reguhr_Lowmin = day_reguhr[target_col].min()
+        day_reguhr_Lowmin = ((100 - float(percent_to_reduce_regular_lowest_price) / 100)
+                                    * day_reguhr_Lowmin
+                                    )
+        day_afterhr_Lowmin = day_afterhr[target_col].min()
         #cases = day_afterhr[day_afterhr["Low"].min() <= day_reguhr_Lowmin]
         if day_afterhr_Lowmin <= day_reguhr_Lowmin:
             print(f"day_afterhr_Lowmin : {day_afterhr_Lowmin}")
@@ -63,7 +95,10 @@ def cal_proba_low_regular_in_after_hours(df):
 #%% TODO: Add plots with horizontal lines  showing the lowest price
 # in regular hours and a vertical line showing when it went long 
 # in after hours and another vertical for sell time
-def buy_from_afterhrs(df, profit_percent=1):
+def buy_afterhrs_at_regular_lowest(df, profit_percent=1,
+                                   percent_to_reduce_regular_lowest_price=0,
+                                   target_col="Close"
+                                   ):
     """Estimate the scenario of buying in the after hours at the 
 
     Args:
@@ -90,7 +125,11 @@ def buy_from_afterhrs(df, profit_percent=1):
     for item in unique_date:
         day_reguhr = reg_df[reg_df.index.date == item]
         day_afterhr = afterhr_df[afterhr_df.index.date == item]
-        day_reguhr_Lowmin = day_reguhr["Close"].min()
+        day_reguhr_Lowmin = day_reguhr[target_col].min()
+        if percent_to_reduce_regular_lowest_price > 0:
+            day_reguhr_Lowmin = ((100 - float(percent_to_reduce_regular_lowest_price) / 100)
+                                    * day_reguhr_Lowmin
+                                    )
         #print(f"day_reguhr_Lowmin : {day_reguhr_Lowmin}")
         enter_post = False
         buy_price = 0
@@ -98,19 +137,19 @@ def buy_from_afterhrs(df, profit_percent=1):
         exit_post = False
         for row_index, row_data in day_afterhr.iterrows():
             if not enter_post:
-                if row_data["Close"] <= day_reguhr_Lowmin:
+                if row_data[target_col] <= day_reguhr_Lowmin:
                     if row_index == day_afterhr.index[-1]:
                         print(f"Not bought because it is last time of after hours {row_index}")
                     else:
-                        buy_price = row_data["Close"]
+                        buy_price = row_data[target_col]
                         buy_price_list.append(buy_price)
                         buy_day_list.append(row_index)
                         enter_post = True
                         exit_price = ((100 + profit_percent)/100) * buy_price
             elif enter_post:
                 if not exit_post:
-                    if row_data["Close"] >= exit_price:
-                        sell_price = row_data["Close"]
+                    if row_data[target_col] >= exit_price:
+                        sell_price = row_data[target_col]
                         sell_price_list.append(sell_price)
                         sell_day_list.append(row_index)
                         profit_lose = sell_price - buy_price
@@ -119,7 +158,7 @@ def buy_from_afterhrs(df, profit_percent=1):
                         profit = ((sell_price - buy_price)/buy_price) * 100
                         profit_lose_percent_list.append(profit)
                     elif row_index == day_afterhr.index[-1]:
-                        sell_price = row_data["Close"]
+                        sell_price = row_data[target_col]
                         sell_price_list.append(sell_price)
                         sell_day_list.append(row_index)
                         profit_lose = sell_price - buy_price
@@ -137,7 +176,10 @@ def buy_from_afterhrs(df, profit_percent=1):
                    
 
 #%%
-def use_premarket_low_to_buy_regular_low(df, profit_percent=1, percent_to_reduce_premarket_low=0):
+def buy_regular_at_premarket_lowest(df, profit_percent=1, 
+                                    percent_to_reduce_premarket_lowest=0,
+                                    target_col="Close"
+                                    ):
     market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
     market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
     
@@ -157,10 +199,10 @@ def use_premarket_low_to_buy_regular_low(df, profit_percent=1, percent_to_reduce
     for item in unique_date:
         day_reguhr = reg_df[reg_df.index.date == item]
         day_premarket = premarket_df[premarket_df.index.date == item]
-        day_premarket_Lowmin = day_premarket["Close"].min()
+        day_premarket_Lowmin = day_premarket[target_col].min()
         
-        if percent_to_reduce_premarket_low > 0:
-            day_premarket_Lowmin = ((100 - float(day_premarket_Lowmin) / 100)
+        if percent_to_reduce_premarket_lowest > 0:
+            day_premarket_Lowmin = ((100 - float(percent_to_reduce_premarket_lowest) / 100)
                                     * day_premarket_Lowmin
                                     )
             
@@ -170,16 +212,16 @@ def use_premarket_low_to_buy_regular_low(df, profit_percent=1, percent_to_reduce
         exit_post = False
         for row_index, row_data in day_reguhr.iterrows():
             if not enter_post:
-                if row_data["Close"] <= day_premarket_Lowmin:
-                    buy_price = row_data["Close"]
+                if row_data[target_col] <= day_premarket_Lowmin:
+                    buy_price = row_data[target_col]
                     buy_price_list.append(buy_price)
                     buy_day_list.append(row_index)
                     enter_post = True
                     exit_price = ((100 + profit_percent)/100) * buy_price
             elif enter_post:
                 if not exit_post:
-                    if row_data["Close"] >= exit_price:
-                        sell_price = row_data["Close"]
+                    if row_data[target_col] >= exit_price:
+                        sell_price = row_data[target_col]
                         sell_price_list.append(sell_price)
                         sell_day_list.append(row_index)
                         profit_lose = sell_price - buy_price
@@ -188,7 +230,7 @@ def use_premarket_low_to_buy_regular_low(df, profit_percent=1, percent_to_reduce
                         profit = ((sell_price - buy_price)/buy_price) * 100
                         profit_lose_percent_list.append(profit)
                     elif row_index == day_reguhr.index[-1]:
-                        sell_price = row_data["Close"]
+                        sell_price = row_data[target_col]
                         sell_price_list.append(sell_price)
                         sell_day_list.append(row_index)
                         profit_lose = sell_price - buy_price
@@ -206,8 +248,47 @@ def use_premarket_low_to_buy_regular_low(df, profit_percent=1, percent_to_reduce
                 
     
 
-def cal_proba_premarket_low_in_regular_hr(df):
-    pass
+def cal_proba_premarket_low_in_regular_hr(df, percent_to_reduce_premarket_lowest=0,
+                                          target_col="Close"
+                                          ):
+    case_count = 0
+    all_count = 0
+    case_date = []
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    #regular_hrs = df[(df.index >= market_open) and (df.index <= market_close)]
+    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+    reg_df = df[df.index.isin(reguhr)]
+    unique_date = np.unique(df.index.date)
+    premarket_hr_df = df[df.index.time <= market_open]
+    
+    for item in unique_date:
+        curr_regular_df = reg_df[reg_df.index.date == item]
+        curr_premarket_df = premarket_hr_df[premarket_hr_df.index.date == item]
+        curr_regular_lowmin = curr_regular_df[target_col].min()
+        curr_premarket_lowmin = curr_premarket_df[target_col].min()
+        if percent_to_reduce_premarket_lowest > 0:
+            curr_premarket_lowmin = ((100 - float(percent_to_reduce_premarket_lowest) / 100)
+                                    * curr_premarket_lowmin
+                                    )
+        #cases = day_afterhr[day_afterhr["Low"].min() <= day_reguhr_Lowmin]
+        if curr_premarket_lowmin <= curr_regular_lowmin:
+            print(f"current premarket lowest : {curr_premarket_lowmin}")
+            print(f"day_reguhr_Lowmin : {curr_regular_lowmin}")
+            case_count += 1
+            all_count += 1
+            case_date.append(item)
+        else:
+            all_count += 1
+    if case_count > 0:
+        proba = (case_count / all_count) * 100
+    else:
+        proba = 0.0
+    return {"probability": proba,
+            "case_date": case_date
+            }
+    
 
 
 
@@ -513,7 +594,8 @@ appside_layout = html.Div(
 
 def output_card(id: str = None, card_label: str =None,
                 style={"backgroundColor": 'yellow'},
-                icon: str ='bi bi-cash-coin', card_size: int = 4):
+                icon: str ='bi bi-cash-coin', card_size: int = 4
+                ):
     return dbc.Col(lg=card_size,
                     children=dbc.CardGroup(
                         children=[
@@ -706,6 +788,7 @@ strategy_layout = html.Div(children=[
                 ), 
         ], 
         ),
+    html.Div("id_strategy_probability_occurrence"),
     html.Div(id="id_strategy_backtest_results"),
         
     ])
@@ -852,6 +935,7 @@ def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
         
 
 @app.callback(Output(component_id="id_strategy_backtest_results", component_property="children"),
+              Output(component_id="id_strategy_probability_occurrence", component_property="children"),
               Input(component_id="id_strategy_stock_ticker", component_property="value"),
               Input(component_id="id_strategy_type", component_property="value"),
               Input(component_id="id_strategy_target", component_property="value"),
@@ -877,15 +961,17 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
             stock_data_prepost = stock_data_prepost[stock_data_prepost.index.date != last_date]
         
         if strategy_type == "reg_lw_after":   
-            proba_res = cal_proba_low_regular_in_after_hours(stock_data_prepost)
-            strategy_res = buy_from_afterhrs(stock_data_prepost)
+            proba_res = cal_proba_regular_lowest_in_after_hours(stock_data_prepost)
+            strategy_res = buy_afterhrs_at_regular_lowest(stock_data_prepost)
         elif strategy_type == "pr_lw_reg":
-            strategy_res = use_premarket_low_to_buy_regular_low(stock_data_prepost,
+            strategy_res = buy_regular_at_premarket_lowest(stock_data_prepost,
                                                                 profit_percent=strategy_target
                                                                 )
+            proba_res = cal_proba_premarket_low_in_regular_hr(stock_data_prepost)
             
-        #proba = proba_res["probability"]
+        proba = proba_res["probability"]
         
+        proba_card = output_card(card_label=proba)
         
 
         profit_lost_percent = strategy_res["profit_lose_percent_list"]
@@ -980,7 +1066,7 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
                                                 ]
                                       )
         
-        return strategy_components
+        return strategy_components, proba_card
 
 
 
@@ -2298,7 +2384,7 @@ after_hours_data = hist[hist['Datetime'].dt.time >= market_close]
 # print(after_hours_data.head())
 
 #%% TODO: 
-# Verify the results of cal_proba_low_regular_in_after_hours
+# Verify the results of cal_proba_regular_lowest_in_after_hours
 # check that they can be successfully executed in real time
 # by ensuring price rise in the after_hours or premarket of the following
 # day after hitting the low from regular hours
@@ -2306,7 +2392,7 @@ after_hours_data = hist[hist['Datetime'].dt.time >= market_close]
     
 #%%
 
-laes_test_res = buy_from_afterhrs(laes_test)
+laes_test_res = buy_afterhrs_at_regular_lowest(laes_test)
 
 #%%
 
@@ -2318,7 +2404,7 @@ laes_test_res["profit_lose_percent_list"]
 laes_test[laes_test.index > laes_test_res["buy_day_list"][0]].head(50)
 #%%
 
-low_reg_in_afterhr_res = cal_proba_low_regular_in_after_hours(laes_test)       
+low_reg_in_afterhr_res = cal_proba_regular_lowest_in_after_hours(laes_test)       
 
 low_reg_in_afterhr_res["case_date"]
 #%%
@@ -2331,7 +2417,7 @@ laes_daily_prepost_included = stock.history(start=laes.index[0],
                                             )
 
 #%%
-#cal_proba_low_regular_in_after_hours(laes_daily_prepost_included)   
+#cal_proba_regular_lowest_in_after_hours(laes_daily_prepost_included)   
 
 #%%  TSLA
 
@@ -2345,7 +2431,7 @@ tsla_prepost = tsla_stock.history(start="2025-01-13", prepost=True,
 
 tsla_prepost.to_csv("/home/lin/codebase/stock_app/src/stock_app/minute_data/TSLA_2025_01_11_to_2025_01_17.csv")
 #%%
-tsla_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(tsla_prepost)
+tsla_lowreg_in_afterhr = cal_proba_regular_lowest_in_after_hours(tsla_prepost)
 
 tsla_lowreg_in_afterhr["probability"]
 
@@ -2354,7 +2440,7 @@ tsla_lowreg_in_afterhr["case_date"]
 
 #%%
 
-tsla_prepost_afterhrs_res = buy_from_afterhrs(tsla_prepost)
+tsla_prepost_afterhrs_res = buy_afterhrs_at_regular_lowest(tsla_prepost)
 
 tsla_prepost_afterhrs_res["profit_lose_percent_list"]
 #%% NVDA
@@ -2366,14 +2452,14 @@ nvda_prepost = nvda_stock.history(start="2025-01-15", prepost=True,
                                   interval='1m'
                                   )
 
-nvda_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(nvda_prepost)
+nvda_lowreg_in_afterhr = cal_proba_regular_lowest_in_after_hours(nvda_prepost)
 
 nvda_lowreg_in_afterhr["probability"]
 
 nvda_lowreg_in_afterhr
 #%%
 
-nvda_prepost_afterhrs_res = buy_from_afterhrs(nvda_prepost)
+nvda_prepost_afterhrs_res = buy_afterhrs_at_regular_lowest(nvda_prepost)
 
 #%%
 
@@ -2392,7 +2478,7 @@ jpm_prepost =jpm_stock.history(start="2025-01-15", prepost=True,
 
 
 #%%
-jpm_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(jpm_prepost)
+jpm_lowreg_in_afterhr = cal_proba_regular_lowest_in_after_hours(jpm_prepost)
 
 jpm_lowreg_in_afterhr["probability"]
 
@@ -2401,7 +2487,7 @@ jpm_lowreg_in_afterhr["probability"]
 #jpm_prepost.to_csv("/home/lin/codebase/stock_app/src/stock_app/minute_data/PEP_2025_01_11_to_2025_01_17.csv")
 
 # %%
-after_hrs_res = buy_from_afterhrs(jpm_prepost)
+after_hrs_res = buy_afterhrs_at_regular_lowest(jpm_prepost)
 
 #%%
 after_hrs_res["profit_lose_percent_list"]
@@ -2422,7 +2508,7 @@ intc_prepost =intc_stock.history(start="2025-01-27", prepost=True,
                                   interval='1m', 
                                   period='8d',
                                   )
-intc_lowreg_in_afterhr = cal_proba_low_regular_in_after_hours(intc_prepost)
+intc_lowreg_in_afterhr = cal_proba_regular_lowest_in_after_hours(intc_prepost)
 
 intc_lowreg_in_afterhr["probability"]
 
@@ -2431,7 +2517,7 @@ intc_lowreg_in_afterhr["probability"]
 #jpm_prepost.to_csv("/home/lin/codebase/stock_app/src/stock_app/minute_data/PEP_2025_01_11_to_2025_01_17.csv")
 
 # %% 
-after_hrs_res = buy_from_afterhrs(intc_prepost)
+after_hrs_res = buy_afterhrs_at_regular_lowest(intc_prepost)
 
 after_hrs_res["profit_lose_percent_list"]
 
@@ -2458,7 +2544,7 @@ px.line(intc_prepost, x=intc_prepost.index, y="Close")
 
 #%%
 
-premarket_str_res = use_premarket_low_to_buy_regular_low(intc_prepost)
+premarket_str_res = buy_regular_at_premarket_lowest(intc_prepost)
 
 premarket_str_res["profit_lose_percent_list"]
 
@@ -2634,6 +2720,75 @@ for day in unique_date:
     fig.show()
 
 
+
+
+
+#%%
+
+import yfinance as yf
+import pandas as pd
+
+# Define the stock ticker
+ticker_symbol = 'AAPL'
+
+# Fetch historical data
+#historical_data = yf.download(ticker_symbol, period='1d', 
+#                              interval='1m')
+#historical_data.reset_index(inplace=True)
+#print(historical_data.head())
+
+ticker = yf.Ticker("IONQ")
+
+historical_data = ticker.history(#start="2025-01-27", 
+                                        # prepost=True,
+                                        interval='1m', 
+                                        period='1d',
+                                        )
+
+import plotly.graph_objects as go
+
+# Define the horizontal lines
+horizontal_line1 = historical_data["Close"].min()  # Example price point for horizontal line 1
+horizontal_line2 = 42.30 #historical_data["Close"].max()  # Example price point for horizontal line 2
+
+# Select a vertical line timestamp from the data index
+#vertical_line = historical_data.loc[5, 'Date']  # Example using the 5th entry in the data
+
+# Create the plot
+fig = go.Figure()
+
+# Add the stock price line
+fig.add_trace(go.Scatter(x=historical_data.index, 
+                         y=historical_data['Close'], mode='lines', 
+                         name='Stock Price'))
+
+# Add horizontal lines
+fig.add_hline(y=horizontal_line1, line_dash="dash", line_color="green", annotation_text="Horizontal Line 1", annotation_position="bottom right")
+fig.add_hline(y=horizontal_line2, line_dash="dash", line_color="blue", annotation_text="Horizontal Line 2", annotation_position="bottom right")
+
+# Add vertical line
+#fig.add_vline(x=historical_data.index[5].timestamp() * 1000, line_dash="dash", line_color="red", annotation_text="Vertical Line", annotation_position="top right")
+
+# Customize the layout
+fig.update_layout(
+    title='Stock Price with Horizontal and Vertical Lines',
+    xaxis_title='Date',
+    yaxis_title='Price',
+    showlegend=True,
+    template='plotly_white'
+)
+
+# Show the plot
+fig.show()
+
+#%%
+
+
+
+#%%
+create_trigger_plots(df=historical_data, entry_point=42.3,
+                     exit_point=39.6
+                     )
 
 # %%
 
