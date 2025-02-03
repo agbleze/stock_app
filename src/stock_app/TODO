@@ -8,3 +8,62 @@ NOTE
 
 
 3. calculate probability that previous close is higher than current low
+
+
+
+NOTE.
+DJT, DNA stock
+first plung happens close to 10:00, second plung happens later in the day. If trading for second plung, make sure I short sell at a price at or above the highest before that time.
+
+
+DNA -- 62.5% -- excellent for BRPL with 100% record of profits at 1%
+
+ACMR -- 62.5%
+
+NXT -- 50% -- excellent for BRPL with 100% record of profits at 1%
+UAL -- 50% 
+FPH -- 37.5%
+PACK -- 50%  -- have shwon consistencyin price plunging by 10 and another plung by 16
+GTLB -- 50%
+RDW -- 62.5%  -- Highest is usually reached at 9:30 something to 10:00 and the lowest point reached at around 12:00
+
+RDWR -- 75%
+DEC -- 75%  # DONOT TRADE ON CDF
+KIE -- 37.5%   -DONOT TRADE
+OLN -- 62.5% --
+RCI -- 62.5%  -- Medium volatility
+WBA -- 62.5% -- Highest using occur at 9:30 something onwards and lowest around 10:00 to something. In general short selling happens at the early stage of the day
+
+PFSI -- 37.5%
+APPF -- 50%  --Plungs around 10:00 usually but not always
+ENVX -- 62.5% - -- excellent for BRPL with 100% record of profits at 1%
+
+NKLA -- 62.5% 
+CRNC -- 75%   --  excellent for BRPL with 100% record of profits at 1%
+STEM  -- 62.5%  -- Usually peaks at 10 something  and haves first plung at around 12 or later
+
+SSTK -- 87.5%  -- pick profits early usually by 12 as there are usually price reversal at the tail end.
+
+
+SES -- 50% -- excellent for BRPL with 100% record of profits at 1%
+for shrot selling, it an early go with highest usually found 9:30 something to 10:30 something and lowest by 12
+
+DECK -- 62.5%
+PONY -- 42.85%
+JILL -- 37.5%
+PKST  -- 75%  -- excellent for BRPL with 100% record of profits at 1. For short selling, Highest usually occur at the early stagearound 9:30 something to 12
+
+OKLO -- 37.5%
+
+QS -- 75%
+
+PSNY -- 87.5%  -- excellent for BRPL with 100% record of profits at 1
+PSEC -- 75%
+selected = ["CRNC", "QS", "QTUM", "WBA","CHRD","RDW", "PKST", "SSTK"]
+
+
+
+# Remove London Exchanges due to very short market duration time -DEC
+# Also check spreads before trading and avoid penny stocks with high spread
+# eg STEM
+

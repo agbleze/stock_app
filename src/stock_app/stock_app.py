@@ -1705,7 +1705,72 @@ def calculate_proba_close_lower_than_nextday_high(df):
             "num_observations": higher_high,
             "curr_closeprice_higher_thn_nextday_high_samples": curr_closeprice_higher_thn_nextday_high_samples
             }
+
+
+#%%
+
+def calculate_proba_close_higher_than_nextday_low(df):
+    """
+
+    Args:
+        df (DataFrame): _description_
+
+    Returns:
+        Dict: _description_
+    """
     
+    higher_high = 0
+    all_comp = 0
+    profit_percent = 0
+    profit_percent_scores = []
+    curr_closeprice_higher_thn_nextday_low_samples = []
+    for rowdata_index, row_data in df.iterrows():
+        #curr_high = row_data["High"]
+        #curr_low = row_data["Low"]
+        curr_close = row_data["Close"]
+        
+        curr_close_price = row_data["Close"]
+        if rowdata_index != df.index[-1]:
+            #next_day_high = df[df.index <= rowdata_index].tail(2).iloc[0]["High"]
+            next_day = df[df.index >= rowdata_index].head(2).iloc[-1]
+            print(f"next day: {next_day.index}")
+            print(f"previous day: {rowdata_index}")
+            next_day_low = next_day["Low"]
+            #previous_day_close = df[df.index <= rowdata_index].tail(2).iloc[0]["Close"]
+            
+            if ((curr_high > previous_day_high) and (curr_low > previous_day_low) 
+                and (curr_close > previous_day_close)
+                ):
+                
+                nextday_high = df[df.index >= rowdata_index].iloc[1]["High"]
+                if nextday_high > curr_close:
+                    higher_high += 1
+                    profit = ((nextday_high / curr_close_price) * 100) -100
+                    #print(f"profit: {profit}")
+                    profit_percent += profit
+                    profit_percent_scores.append(profit)
+                        
+                    all_comp += 1
+                else:
+                    all_comp += 1
+                    curr_and_nextday_df = df[df.index >= rowdata_index].iloc[0:2]
+                    curr_closeprice_higher_thn_nextday_high_samples.append(curr_and_nextday_df)
+        else:
+            print(f"last day: {rowdata_index}")
+        #break 
+
+    if higher_high == 0:
+        prob = 0
+    else:
+        prob = (higher_high / all_comp) * 100
+    return {"probability": prob, 
+            "profit_percent": profit_percent,
+            "profit_percent_scores": profit_percent_scores,
+            "total_instances": all_comp,
+            "num_observations": higher_high,
+            "curr_closeprice_higher_thn_nextday_high_samples": curr_closeprice_higher_thn_nextday_high_samples
+            }
+       
 #%%
 
 laes_nextday_profit_res = calculate_proba_close_lower_than_nextday_high(laes)
@@ -1823,7 +1888,7 @@ import yfinance as yf
 ticker = 'LAES'
 stock = yf.Ticker(ticker)
 
-save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/21_01_2025_to_24_01_2025"
+save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/22_01_2025_to_31_01_2025"
 #%% Download data including extended hours
 hist = stock.history(start="2025-01-11", #period='1d',
                      interval='1m', prepost=True)
@@ -1841,6 +1906,45 @@ tickers = ["NVDA", "SMCI","AI", "RGTI", "QSI", "QUBT",
            "HO", "ADN1", "RBI"
            ]
 
+
+selected_premarket_stocks = ["APP", "SMCI", "NOW", "QBTS", 
+                             "RGTI", "LAES",
+                             "AVGO", "SAP", "JPM", "NFLX",
+                             "PEP", "WMT", "WDAY", "PLTR", "CRNC",
+                             "QUBT", "AI", "HSAI", "LLY", "TSM", 
+                             "BLK", "MSTR", "MCD", "LOW",
+                             "PG", "WKEY", "TMO", "MPW", "SCHW",
+                             "SSTK", "DDD", "AIR", "NSANY", "EQT",
+                             "RR", "VRME", "CLSK", "TSLA", "META",
+                             "AMZN", "GOOGL", "COIN", "ADP",
+                             "CSCO", "JNJ", "NUE", "TROW",
+                             "SYY", "GWW", "AZN", "NVAX", "MRNA",
+                             "NVS", "BNTX", "GME", "AMC", "ZM",
+                             "ALUR", 
+                             "MSFT", "LUNR", "RKLB",
+                             "SERV", "BEN", "SBUX", "DUK",
+                             "C", "SIDU", "UPST", "HOOD", "RDW", "BABA",
+                             "MARA", "NNE", "NNN",
+                             "QTUM", "QS", "ARQQ", "PKST"
+                             
+                             ]
+selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO", 
+                   "NFLX", "SAP", "IBM", "WMT",
+                   "JPM", "GOOGL",
+                   "MA", "LOW", "MAD",
+                   "QCOM", "PEP", "TMO", "NOW",
+                   "QUBT",
+                   "WDAY", "LLY", "TSM",
+                   "BLK", "MSTR", "MAIN", "PG",
+                   "ABR", "LIN", "EAT", "MMM",
+                   "ASML", "WKEY", "INTC", "SCHW",
+                   "SSTK", "AIR", "EQT", "VRME", "CLSK",
+                   "AAPL", "ADP", "CSCO", "SOFI", "NUE",
+                   "ITW", "TROW", "SYY", "GWW", "AZN",
+                   "MRK", "NVS", "BNTX", "AMC","ZM",
+                   "MSFT", "SIDU", "NNN"
+                
+                   ]
 #%%
 # tickers = ["RHM.DE", "LMT", "TRE", "HEI", "UNCRY", "ENL", "INTC",
 #            "ACA", "GFT", "FDX", "LIN", "V", "META", "QCOM",
@@ -1848,16 +1952,38 @@ tickers = ["NVDA", "SMCI","AI", "RGTI", "QSI", "QUBT",
 #            "HO", "ADN1", "RBI"]
 #tickers = ["RHM.DE"]
 
-tickers = ["SIDU"]
+#%% ["SES", "DECK", "PONY", "JILL", "PKST", "OKLO", "COIN", "SSTK", "CRNC"]
+short_sell_tickers = ["SARO", "BBAI", "QUAD", "NVRI", "DJT", "COIN",
+                    "UBI", "DNA", "ACMR", "NXT", "CHRD", "UAL",
+                    "FPH", "PACK", "GTLB", "NSKOG", "RDW",
+                    "OLP", "DEC", "CGEO", "KIE", "CRAYN",
+                    "AMSSY", "ELMRA", "OLN", "WBA", "PFSI", "APPF",
+                    "ENVX", "NKLA", "CRNC", "STEM", "SSTK",
+                    "SES", "DECK", "PONY", "JILL", "PKST", "OKLO",
+                    "RDWR"
+                    ]
+# AMSSY needs debugging for premarket
+# no data -- CGEO, NSKOG, ELMRA
+preselected_shortsell = ["CHRD", "BBAI",]
 for ticker in tickers:
     stock = yf.Ticker(ticker)
-    hist = stock.history(start="2025-01-20", period='1mo',
-                         interval='1m', prepost=True
-                         )
-    hist.to_csv(f"{save_dir}/{ticker}_2025_01_21_to_2025_01_24.csv")
+    # hist = stock.history(start="2025-01-27", period='8d',
+    #                      interval='1m', prepost=True
+    #                      )
+    # hist.to_csv(f"{save_dir}/{ticker}_2025_01_27_to_2025_01_31.csv")
+    
+    hist = stock.history(#start=start_date, end=end_date,
+                prepost=True,
+                interval='1m', 
+                period='8d',
+                )
+    hist.to_csv(f"{save_dir}/{ticker}_2025_01_22_to_2025_01_31.csv")
+    #print(hist.index[0])
+    #print(hist.index[-1])
 
 
 
+#%%
 #%%
 hist[hist["High"]==hist["High"].max()].index
 
