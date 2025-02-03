@@ -1718,58 +1718,27 @@ def calculate_proba_close_higher_than_nextday_low(df):
     Returns:
         Dict: _description_
     """
-    
-    higher_high = 0
-    all_comp = 0
-    profit_percent = 0
-    profit_percent_scores = []
-    curr_closeprice_higher_thn_nextday_low_samples = []
+    count_case = 0
+    all_cases = 0 
     for rowdata_index, row_data in df.iterrows():
-        #curr_high = row_data["High"]
-        #curr_low = row_data["Low"]
         curr_close = row_data["Close"]
-        
-        curr_close_price = row_data["Close"]
         if rowdata_index != df.index[-1]:
-            #next_day_high = df[df.index <= rowdata_index].tail(2).iloc[0]["High"]
             next_day = df[df.index >= rowdata_index].head(2).iloc[-1]
             print(f"next day: {next_day.index}")
             print(f"previous day: {rowdata_index}")
             next_day_low = next_day["Low"]
-            #previous_day_close = df[df.index <= rowdata_index].tail(2).iloc[0]["Close"]
-            
-            if ((curr_high > previous_day_high) and (curr_low > previous_day_low) 
-                and (curr_close > previous_day_close)
-                ):
-                
-                nextday_high = df[df.index >= rowdata_index].iloc[1]["High"]
-                if nextday_high > curr_close:
-                    higher_high += 1
-                    profit = ((nextday_high / curr_close_price) * 100) -100
-                    #print(f"profit: {profit}")
-                    profit_percent += profit
-                    profit_percent_scores.append(profit)
-                        
-                    all_comp += 1
-                else:
-                    all_comp += 1
-                    curr_and_nextday_df = df[df.index >= rowdata_index].iloc[0:2]
-                    curr_closeprice_higher_thn_nextday_high_samples.append(curr_and_nextday_df)
+            if curr_close > next_day_low:
+                count_case += 1
+                all_cases += 1
+            else:
+                all_cases += 1
         else:
             print(f"last day: {rowdata_index}")
-        #break 
-
-    if higher_high == 0:
+    if count_case == 0:
         prob = 0
     else:
-        prob = (higher_high / all_comp) * 100
-    return {"probability": prob, 
-            "profit_percent": profit_percent,
-            "profit_percent_scores": profit_percent_scores,
-            "total_instances": all_comp,
-            "num_observations": higher_high,
-            "curr_closeprice_higher_thn_nextday_high_samples": curr_closeprice_higher_thn_nextday_high_samples
-            }
+        prob = (count_case / all_cases) * 100
+    return {"probability": prob}
        
 #%%
 
@@ -2911,11 +2880,16 @@ create_trigger_plots(df=historical_data, entry_point=42.3,
                      exit_point=39.6
                      )
 
+#%%
 
+import yfinance as yf
 
+# Example: Apple Inc.
+ticker = 'IONQ'
+stock = yf.Ticker(ticker)
+stock_price = download_stock_price(stock_ticker=ticker)
 
-
-
+calculate_proba_close_higher_than_nextday_low(stock_price)
 
 
 
