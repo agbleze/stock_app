@@ -6,8 +6,9 @@ NOTE
 
 2. calculate probability that Highest occurs befor the Lowest
 
-
-3. calculate probability that previous close is higher than current low
+3. Add stock profile that shows when min, max occur and various probabilities estimate
+4. Probability that if current open is higher than previous close than 
+   current low will be higher than prevous close
 
 
 
@@ -55,13 +56,18 @@ PKST  -- 75%  -- excellent for BRPL with 100% record of profits at 1. For short 
 
 OKLO -- 37.5%
 
-QS -- 75%
+QS -- 75%  ---- Determining target price for entry and exit proves difficult
+
+
+NNE -- 75% -- excellent for BRPL with 100% record of profits at 1
+NNN -- 75%
+
 
 PSNY -- 87.5%  -- excellent for BRPL with 100% record of profits at 1
 PSEC -- 75%
-selected = ["CRNC", "QS", "QTUM", "WBA","CHRD","RDW", "PKST", "SSTK"]
+selected = ["CRNC", "QS", "QTUM", "WBA","CHRD","RDW", "PKST", "SSTK", "PSNY", "PSEC"] 
 
-
+selected_bury_regular_at_premarket_low = ["NNE"]
 
 # Remove London Exchanges due to very short market duration time -DEC
 # Also check spreads before trading and avoid penny stocks with high spread

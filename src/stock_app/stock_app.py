@@ -379,6 +379,8 @@ def download_stock_price(stock_ticker, start_date=None, end_date=None, **kwargs)
         data.columns = data.columns.droplevel(1)
     return data
 
+
+#%%
         
 app = dash.Dash(__name__, external_stylesheets=[
                                                 dbc.themes.SOLAR,
@@ -1724,10 +1726,11 @@ def calculate_proba_close_higher_than_nextday_low(df):
         curr_close = row_data["Close"]
         if rowdata_index != df.index[-1]:
             next_day = df[df.index >= rowdata_index].head(2).iloc[-1]
-            print(f"next day: {next_day.index}")
-            print(f"previous day: {rowdata_index}")
+            #print(f"next day: {next_day.index}")
+            #print(f"previous day: {rowdata_index}")
             next_day_low = next_day["Low"]
             if curr_close > next_day_low:
+                #print(f"curr_close: {curr_close} --- next_day_low: {next_day_low}")
                 count_case += 1
                 all_cases += 1
             else:
@@ -2892,12 +2895,118 @@ stock_price = download_stock_price(stock_ticker=ticker)
 calculate_proba_close_higher_than_nextday_low(stock_price)
 
 
+#%%
+
+preselected_shortsell = ["CHRD", "BBAI",]
+for ticker in tickers:
+    stock = yf.Ticker(ticker)
+    
+    hist = stock.history(#start=start_date, end=end_date,
+                prepost=True,
+                interval='1m', 
+                period='8d',
+                )
+
+
+#%%
+def download_minute_interval_data(ticker, start_date=None, end_date=None, 
+                                  include_premarket_afterhours=True
+                                  ):
+    stock = yf.Ticker(ticker)
+    
+    data = stock.history(start=start_date, end=end_date,
+                            prepost=include_premarket_afterhours,
+                            interval='1m', 
+                            period='8d',
+                            )
+    return data
+#%%
+def get_time_of_event_in_regular_market(df, event="Highest"):
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+    reg_df = df[df.index.isin(reguhr)]
+    unique_date = np.unique(df.index.date)
+    
+    time_of_event_price = []
+    for day in unique_date:
+        day_df = reg_df[reg_df.index.date==day]
+        if event == "Highest":
+            event_df = day_df[day_df["High"] == day_df["High"].max()]
+        elif event == "Lowest":
+            event_df = day_df[day_df["Low"] == day_df["Low"].min()]
+        else:
+            raise ValueError("Invalid event type. Use 'Highest' or 'Lowest'.")
+        event_time = event_df.index
+        time_of_event_price.append(event_time)
+    return time_of_event_price
+
+
+#%%
+def get_premarket_stats(df, market_type="premarket"):
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    if market_type == "premarket":
+        df = df[(df.index.time <= market_open)]
+    elif market_type == "regular":
+        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+        df = df[df.index.isin(reguhr)]
+    elif market_type == "afterhrs":
+        df = df[df.index.time >= market_close]
+    else:
+        raise ValueError("Invalid market type. Use 'premarket', 'afterhrs', or'regular'.")
+    
+    unique_date = np.unique(df.index.date)
+   
+    res= {}
+    for day in unique_date:
+        day_df = df[df.index.date==day]
+        min_value = day_df["Low"].min()
+        max_value = day_df["High"].max()
+        mean_value = day_df["Close"].mean()
+        median_value = day_df["Close"].median()
+        min_time = day_df[day_df["Low"] == min_value].index
+        max_time = day_df[day_df["High"] == max_value].index
+        
+        res[day] = {f'{market_type}_min': {min_value}, 
+                    f'{market_type}_max': {max_value}, 
+                    f'{market_type}_mean': {mean_value}, 
+                    f'{market_type}_median': {median_value},
+                    f'{market_type}_min_time': {str(min_time.time)},
+                    f'{market_type}_max_time': {str(max_time.time)}
+                    }
+                    
+    return res
 
 
 
+#%%
 
+ionq_min_data = download_minute_interval_data("IONQ")
 
+#%%
+highest_time = get_time_of_event_in_regular_market(df=ionq_min_data)
+highest_time
 
+#%%
+
+lowest_time = get_time_of_event_in_regular_market(df=ionq_min_data, event="Lowest")
+lowest_time
+#%%
+
+stock_price.index.date
+#%%
+
+str(highest_time[0].time.hour)
+
+#%%
+
+ionq_min_data["Close"].min()
+
+#%%
+get_premarket_stats(ionq_min_data, market_type="premarket")
 
 # %%
 
