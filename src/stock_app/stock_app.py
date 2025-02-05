@@ -2497,7 +2497,7 @@ hist = stock.history(period='5d', interval='1m', prepost=True)
 # Convert the index to a column for easier filtering
 hist = hist.reset_index()
 
-# Define market open and close times
+#%% Define market open and close times
 market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
 market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
 
@@ -2888,24 +2888,12 @@ create_trigger_plots(df=historical_data, entry_point=42.3,
 import yfinance as yf
 
 # Example: Apple Inc.
-ticker = 'IONQ'
+ticker = 'APPF'
 stock = yf.Ticker(ticker)
 stock_price = download_stock_price(stock_ticker=ticker)
 
 calculate_proba_close_higher_than_nextday_low(stock_price)
 
-
-#%%
-
-preselected_shortsell = ["CHRD", "BBAI",]
-for ticker in tickers:
-    stock = yf.Ticker(ticker)
-    
-    hist = stock.history(#start=start_date, end=end_date,
-                prepost=True,
-                interval='1m', 
-                period='8d',
-                )
 
 
 #%%
@@ -2980,19 +2968,36 @@ def get_premarket_stats(df, market_type="premarket"):
                     
     return res
 
+#%%
+
+def get_curr_premarket_min_max(ticker):
+    df = download_minute_interval_data(ticker=ticker)
+    curr_date = df.index.date[-1]
+    curr_premarket_data = df[df.index.date==curr_date]
+    curr_premarket_min = curr_premarket_data["Low"].min()
+    curr_premarket_max = curr_premarket_data["High"].max()
+    print(f"current date: {curr_date}")
+    return curr_premarket_min, curr_premarket_max
 
 
 #%%
 
-ionq_min_data = download_minute_interval_data("IONQ")
+get_curr_premarket_min_max(ticker)
 
 #%%
+
+ionq_min_data = download_minute_interval_data(ticker)
+
+#%%
+print(f"{ticker}: Highest time")
 highest_time = get_time_of_event_in_regular_market(df=ionq_min_data)
 highest_time
 
 #%%
 
-lowest_time = get_time_of_event_in_regular_market(df=ionq_min_data, event="Lowest")
+lowest_time = get_time_of_event_in_regular_market(df=ionq_min_data, 
+                                                  event="Lowest")
+print(f"{ticker}: Lowest time")
 lowest_time
 #%%
 
@@ -3006,8 +3011,43 @@ str(highest_time[0].time.hour)
 ionq_min_data["Close"].min()
 
 #%%
-get_premarket_stats(ionq_min_data, market_type="premarket")
+premart_stat = get_premarket_stats(ionq_min_data, market_type="premarket")
+regular_stat = get_premarket_stats(ionq_min_data, market_type="regular")
 
+#%%
+print(ticker)
+for item in regular_stat.keys():
+    reg_max = regular_stat[item]["regular_max"]
+    premart_max = premart_stat[item]["afterhrs_max"]
+    print(f"{item}: after  median {premart_max} ==== regular median {reg_max}")
+
+
+
+#%%
+
+market_close > market_open
+
+
+#%%
+
+def cal_low_preceds_high(df, market_type="regular"):
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    
+    if market_type == "premarket":
+        df = df[(df.index.time <= market_open)]
+    elif market_type == "regular":
+        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+        df = df[df.index.isin(reguhr)]
+    elif market_type == "afterhrs":
+        df = df[df.index.time >= market_close]
+    else:
+        raise ValueError("Invalid market type. Use 'premarket', 'afterhrs', or'regular'.")
+    
+    unique_date = np.unique(df.index.date)
+    for day in unique_date:
+        pass
 # %%
 
 import pandas as pd
