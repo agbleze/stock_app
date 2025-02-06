@@ -2888,7 +2888,7 @@ create_trigger_plots(df=historical_data, entry_point=42.3,
 import yfinance as yf
 
 # Example: Apple Inc.
-ticker = 'APPF'
+ticker = 'IONQ'
 stock = yf.Ticker(ticker)
 stock_price = download_stock_price(stock_ticker=ticker)
 
@@ -2999,16 +2999,6 @@ lowest_time = get_time_of_event_in_regular_market(df=ionq_min_data,
                                                   event="Lowest")
 print(f"{ticker}: Lowest time")
 lowest_time
-#%%
-
-stock_price.index.date
-#%%
-
-str(highest_time[0].time.hour)
-
-#%%
-
-ionq_min_data["Close"].min()
 
 #%%
 premart_stat = get_premarket_stats(ionq_min_data, market_type="premarket")
@@ -3018,22 +3008,24 @@ regular_stat = get_premarket_stats(ionq_min_data, market_type="regular")
 print(ticker)
 for item in regular_stat.keys():
     reg_max = regular_stat[item]["regular_max"]
-    premart_max = premart_stat[item]["afterhrs_max"]
-    print(f"{item}: after  median {premart_max} ==== regular median {reg_max}")
+    premart_max = premart_stat[item]["premarket_max"]
+    print(f"{item}: premarket  max {premart_max} ==== regular max {reg_max}")
 
+
+#%%
+premart_stat
+
+#%%
+regular_stat
 
 
 #%%
 
-market_close > market_open
-
-
-#%%
-
-def cal_low_preceds_high(df, market_type="regular"):
+def cal_proba_low_preceds_high(df, market_type="regular"):
     market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
     market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    
+    case_counts = 0
+    events_counts = 0
     if market_type == "premarket":
         df = df[(df.index.time <= market_open)]
     elif market_type == "regular":
@@ -3047,7 +3039,99 @@ def cal_low_preceds_high(df, market_type="regular"):
     
     unique_date = np.unique(df.index.date)
     for day in unique_date:
-        pass
+        day_df = df[df.index.date==day]
+        low_day = day_df[day_df["Low"] == day_df["Low"].min()]
+        low_time = low_day.index[0]
+        high_day = day_df[day_df["High"] == day_df["High"].max()]
+        high_time = high_day.index[0]
+        
+        if low_time < high_time:
+            case_counts += 1
+            events_counts += 1
+            print(f"low time {low_time}  === higg time {high_time}")
+        else:
+            events_counts += 1
+            
+    if case_counts == 0:
+        proba = 0
+    else:
+        proba = (case_counts / events_counts) * 100
+        
+    return {f"{market_type}_probability": proba}
+            
+        
+#%%
+cal_proba_low_preceds_high(df=ionq_min_data, market_type="premarket")
+
+
+#%%
+def cal_lowest_percent_target_is_below_base_market(df, base_market = "premarket",
+                                                    target_market="regular"
+                                                    ):
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    case_counts = 0
+    events_counts = 0
+    
+    if base_market not in ["premarket", "regular"]:
+        raise ValueError("Invalid base market type. Use 'premarket' or 'regular'.")
+    
+    if target_market not in ["premarket", "regular"]:
+        raise ValueError("Invalid target market type. Use 'premarket', 'afterhrs', or'regular'.")
+    
+    if base_market == "premarket":
+        base_market_df = df[(df.index.time <= market_open)]
+    elif base_market == "regular":
+        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+        base_market_df = df[df.index.isin(reguhr)]
+        
+    if target_market == "premarket":
+        target_market_df = df[(df.index.time <= market_open)]
+    elif target_market == "regular":
+        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+        target_market_df = df[df.index.isin(reguhr)]
+        
+    unique_date = np.unique(df.index.date)
+   
+    res= {}
+    for day in unique_date:
+        day_target_df = target_market_df[target_market_df.index.date==day]
+        day_base_df = base_market_df[base_market_df.index.date==day]
+        day_target_df_min = day_target_df["Low"].min()
+        day_base_df_min = day_base_df["Low"].min()
+        if day_target_df_min < day_base_df_min:
+            low_percent =  (((day_base_df_min - day_target_df_min)
+                             /day_base_df_min) * 100
+                            )
+            res[day] = {f'percent_lower': {low_percent}
+                        }
+    res["Note"] = f"""{target_market} is less than the {base_market} by the percentages indicated whenever
+                    {target_market} goes below {base_market}"""
+    return res
+        
+        
+
+#%%
+
+cal_lowest_percent_target_is_below_base_market(ionq_min_data)
+
+
+
+#%%
+
+yticker = yf.Ticker("IONQ")  # Replace "AAPL" with your desired stock ticker
+after_hours_data = yticker.history(start="2023-01-01", end="2023-01-02", interval="1d", after_hours=True)
+
+
+
+
+
+
+
+
+
 # %%
 
 import pandas as pd
