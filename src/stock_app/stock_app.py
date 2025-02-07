@@ -2955,6 +2955,7 @@ def get_premarket_stats(df, market_type="premarket"):
         max_value = day_df["High"].max()
         mean_value = day_df["Close"].mean()
         median_value = day_df["Close"].median()
+        std_value = day_df["Close"].std()
         min_time = day_df[day_df["Low"] == min_value].index
         max_time = day_df[day_df["High"] == max_value].index
         
@@ -2962,6 +2963,7 @@ def get_premarket_stats(df, market_type="premarket"):
                     f'{market_type}_max': {max_value}, 
                     f'{market_type}_mean': {mean_value}, 
                     f'{market_type}_median': {median_value},
+                    f'{market_type}_std': {std_value},
                     f'{market_type}_min_time': {str(min_time.time)},
                     f'{market_type}_max_time': {str(max_time.time)}
                     }
@@ -2970,23 +2972,55 @@ def get_premarket_stats(df, market_type="premarket"):
 
 #%%
 
-def get_curr_premarket_min_max(ticker):
-    df = download_minute_interval_data(ticker=ticker)
+def get_current_stats_for_market(ticker=None, df=None, market_type = "premarket"):
+    if not ticker and not df:
+        raise ValueError("Both ticker and df are not given. Please provide at least one of them"
+                         )
+    if ticker:
+        df = download_minute_interval_data(ticker)
+    
+    if market_type not in ["premarket", "regular", "afterhrs"]:
+        raise ValueError("Invalid market type. Use 'premarket', 'afterhrs', or'regular'.")
+    
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    if market_type == "premarket":
+        df = df[(df.index.time <= market_open)]
+    elif market_type == "regular":
+        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+        df = df[df.index.isin(reguhr)]
+    elif market_type == "afterhrs":
+        df = df[df.index.time >= market_close]
+        
     curr_date = df.index.date[-1]
-    curr_premarket_data = df[df.index.date==curr_date]
-    curr_premarket_min = curr_premarket_data["Low"].min()
-    curr_premarket_max = curr_premarket_data["High"].max()
+    curr_data = df[df.index.date==curr_date]
+    curr_min = curr_data["Low"].min()
+    curr_max = curr_data["High"].max()
+    curr_std = curr_data["Close"].std()
+    curr_median = curr_data["Close"].median()
+    curr_mean = curr_data["Close"].mean()
+    curr_close_price = curr_data["Close"].values[-1]
     print(f"current date: {curr_date}")
-    return curr_premarket_min, curr_premarket_max
+    
+    res = {}
+    res[f"{curr_date}"] = {"min": curr_min,
+                           "max": curr_max,
+                           "std": curr_std,
+                           "median": curr_median,
+                           "mean": curr_mean,
+                           "current_close_price": curr_close_price,
+                           "market_type": market_type
+                           }
+    return res
 
-
-#%%
-
-get_curr_premarket_min_max(ticker)
 
 #%%
 
 ionq_min_data = download_minute_interval_data(ticker)
+
+#%%
+get_current_stats_for_market(ticker="IONQ", market_type="regular")
 
 #%%
 print(f"{ticker}: Highest time")

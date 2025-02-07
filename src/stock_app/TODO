@@ -73,3 +73,22 @@ selected_bury_regular_at_premarket_low = ["NNE"]
 # Also check spreads before trading and avoid penny stocks with high spread
 # eg STEM
 
+
+
+
+# NOTE:
+# For bear market scenario, I realized, from 21:10 to the closing bell, price started
+gaining gradual momentum which could be the result of short squeeze. I suspect
+short sellers are trying to close positions on Friday before the weekend hence 
+increase demand in such short duration increating prices.
+
+Try to take advantage of this taking note of CFD spreads
+
+
+
+# IONQ should time based pattern on 1 minute chart
+# At about 15:00 to 15:30, there is a consistent upward trend for scalping and this needs to be quick 
+in and out for about 5 to 10 minutes.
+
+Start monitoring price for any present downward trend, when it v´finally halts and reverses, buy and 
+ride the upward trend to exit quickly. It is noted on bear market
