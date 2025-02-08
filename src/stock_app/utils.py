@@ -13,6 +13,24 @@ import pandas_market_calendars as mcal
 import math
 import plotly.express as px
 
+
+def get_market_type_data(df, market_type):
+    if market_type not in ["premarket", "regular", "afterhrs"]:
+        raise ValueError("Invalid market type. Use 'premarket', 'afterhrs', or'regular'.")
+    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
+    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
+    
+    if market_type == "premarket":
+        df = df[(df.index.time <= market_open)]
+    elif market_type == "regular":
+        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
+        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
+        df = df[df.index.isin(reguhr)]
+    elif market_type == "afterhrs":
+        df = df[df.index.time >= market_close]
+        
+    return df
+
 def cal_proba_regular_lowest_in_after_hours(df, 
                                             percent_to_reduce_regular_lowest_price=0,
                                             target_col="Close"
@@ -20,14 +38,9 @@ def cal_proba_regular_lowest_in_after_hours(df,
     case_count = 0
     all_count = 0
     case_date = []
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    #regular_hrs = df[(df.index >= market_open) and (df.index <= market_close)]
-    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-    reg_df = df[df.index.isin(reguhr)]
+    reg_df = get_market_type_data(df=df, market_type="regular") 
+    afterhr_df = get_market_type_data(df=df, market_type="afterhrs")
     unique_date = np.unique(df.index.date)
-    afterhr_df = df[df.index.time >= market_close]
     
     for item in unique_date:
         day_reguhr = reg_df[reg_df.index.date == item]
@@ -37,7 +50,6 @@ def cal_proba_regular_lowest_in_after_hours(df,
                             * day_reguhr_Lowmin
                             )
         day_afterhr_Lowmin = day_afterhr[target_col].min()
-        #cases = day_afterhr[day_afterhr["Low"].min() <= day_reguhr_Lowmin]
         if day_afterhr_Lowmin <= day_reguhr_Lowmin:
             print(f"day_afterhr_Lowmin : {day_afterhr_Lowmin}")
             print(f"day_reguhr_Lowmin : {day_reguhr_Lowmin}")
@@ -71,14 +83,9 @@ def buy_afterhrs_at_regular_lowest(df, profit_percent=1,
     Returns:
         _type_: _description_
     """
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    #regular_hrs = df[(df.index >= market_open) and (df.index <= market_close)]
-    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-    reg_df = df[df.index.isin(reguhr)]
+    reg_df = get_market_type_data(df=df, market_type="regular") 
     unique_date = np.unique(df.index.date)
-    afterhr_df = df[df.index.time >= market_close]
+    afterhr_df = get_market_type_data(df=df, market_type="afterhrs")
     buy_price_list = []
     buy_day_list = []
     sell_price_list = []
@@ -93,7 +100,6 @@ def buy_afterhrs_at_regular_lowest(df, profit_percent=1,
             day_reguhr_Lowmin = ((100 - float(percent_to_reduce_regular_lowest_price) / 100)
                                     * day_reguhr_Lowmin
                                     )
-        #print(f"day_reguhr_Lowmin : {day_reguhr_Lowmin}")
         enter_post = False
         buy_price = 0
         exit_price = 0
@@ -143,15 +149,10 @@ def buy_regular_at_premarket_lowest(df, profit_percent=1,
                                     percent_to_reduce_premarket_lowest=0,
                                     target_col="Close"
                                     ):
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    
-    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-    reg_df = df[df.index.isin(reguhr)]
+    reg_df = get_market_type_data(df=df, market_type="regular")
     unique_date = np.unique(df.index.date)
     
-    premarket_df = df[df.index.time <= market_open]
+    premarket_df = get_market_type_data(df=df, market_type="premarket")
     buy_price_list = []
     buy_day_list = []
     sell_price_list = []
@@ -210,22 +211,15 @@ def buy_regular_at_premarket_lowest(df, profit_percent=1,
             }          
                 
     
-
 def cal_proba_premarket_low_in_regular_hr(df, percent_to_reduce_premarket_lowest=0,
                                           target_col="Close"
                                           ):
     case_count = 0
     all_count = 0
     case_date = []
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    #regular_hrs = df[(df.index >= market_open) and (df.index <= market_close)]
-    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-    reg_df = df[df.index.isin(reguhr)]
+    reg_df = get_market_type_data(df=df, market_type="regular")
     unique_date = np.unique(df.index.date)
-    premarket_hr_df = df[df.index.time <= market_open]
-    
+    premarket_hr_df = get_market_type_data(df=df, market_type="premarket")
     for item in unique_date:
         curr_regular_df = reg_df[reg_df.index.date == item]
         curr_premarket_df = premarket_hr_df[premarket_hr_df.index.date == item]
@@ -235,7 +229,6 @@ def cal_proba_premarket_low_in_regular_hr(df, percent_to_reduce_premarket_lowest
             curr_premarket_lowmin = (((100 - percent_to_reduce_premarket_lowest) / 100)
                                     * curr_premarket_lowmin
                                     )
-        #cases = day_afterhr[day_afterhr["Low"].min() <= day_reguhr_Lowmin]
         if curr_premarket_lowmin >= curr_regular_lowmin:
             print(f"current premarket lowest : {curr_premarket_lowmin}")
             print(f"day_reguhr_Lowmin : {curr_regular_lowmin}")
@@ -297,7 +290,6 @@ def calculate_proba_close_lower_than_nextday_high_conditional(df):
                     curr_closeprice_higher_thn_nextday_high_samples.append(curr_and_nextday_df)
         else:
             print(f"last day: {rowdata_index}")
-        #break 
 
     if higher_high == 0:
         prob = 0
@@ -607,7 +599,6 @@ def compounded_amount(principal, daily_rate, num_trades):
     Returns:
     - float: The amount of money accumulated after the given number of trades.
     """
-    # Calculate the amount of money accumulated
     accumulated_amount = principal * (1 + daily_rate) ** num_trades
     
     return accumulated_amount
@@ -638,11 +629,9 @@ def create_new_highs(df, target_col="Close"):
  
 def plot_new_lows_highs(df, title: str):
     unique_date = np.unique(df.index.date)
-
     for day in unique_date:
         df = df[df.index.date==day]
         df = create_new_lows(df=df) 
-
         df = create_new_highs(df=df)
         fig = px.line(df,
                         x=df.index,
@@ -657,7 +646,6 @@ def download_minute_interval_data(ticker, start_date=None, end_date=None,
                                   include_premarket_afterhours=True
                                   ):
     stock = yf.Ticker(ticker)
-    
     data = stock.history(start=start_date, end=end_date,
                             prepost=include_premarket_afterhours,
                             interval='1m', 
@@ -666,11 +654,7 @@ def download_minute_interval_data(ticker, start_date=None, end_date=None,
     return data
 
 def get_time_of_event_in_regular_market(df, event="Highest"):
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-    reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-    reg_df = df[df.index.isin(reguhr)]
+    reg_df = get_market_type_data(df=df, market_type="regular") 
     unique_date = np.unique(df.index.date)
     
     time_of_event_price = []
@@ -687,22 +671,10 @@ def get_time_of_event_in_regular_market(df, event="Highest"):
     return time_of_event_price
 
 def get_premarket_stats(df, market_type="premarket"):
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    if market_type == "premarket":
-        df = df[(df.index.time <= market_open)]
-    elif market_type == "regular":
-        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-        df = df[df.index.isin(reguhr)]
-    elif market_type == "afterhrs":
-        df = df[df.index.time >= market_close]
-    else:
-        raise ValueError("Invalid market type. Use 'premarket', 'afterhrs', or'regular'.")
-    
+    res= {}
+    df = get_market_type_data(df=df, market_type=market_type)
     unique_date = np.unique(df.index.date)
    
-    res= {}
     for day in unique_date:
         day_df = df[df.index.date==day]
         min_value = day_df["Low"].min()
@@ -725,26 +697,13 @@ def get_premarket_stats(df, market_type="premarket"):
     return res
 
 def get_current_stats_for_market(ticker=None, df=None, market_type = "premarket"):
+    res = {}
     if not ticker and not df:
         raise ValueError("Both ticker and df are not given. Please provide at least one of them"
                          )
     if ticker:
         df = download_minute_interval_data(ticker)
-    
-    if market_type not in ["premarket", "regular", "afterhrs"]:
-        raise ValueError("Invalid market type. Use 'premarket', 'afterhrs', or'regular'.")
-    
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    if market_type == "premarket":
-        df = df[(df.index.time <= market_open)]
-    elif market_type == "regular":
-        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-        df = df[df.index.isin(reguhr)]
-    elif market_type == "afterhrs":
-        df = df[df.index.time >= market_close]
-        
+    df = get_market_type_data(df=df, market_type=market_type)  
     curr_date = df.index.date[-1]
     curr_data = df[df.index.date==curr_date]
     curr_min = curr_data["Low"].min()
@@ -755,7 +714,6 @@ def get_current_stats_for_market(ticker=None, df=None, market_type = "premarket"
     curr_close_price = curr_data["Close"].values[-1]
     print(f"current date: {curr_date}")
     
-    res = {}
     res[f"{curr_date}"] = {"min": curr_min,
                            "max": curr_max,
                            "std": curr_std,
@@ -766,23 +724,10 @@ def get_current_stats_for_market(ticker=None, df=None, market_type = "premarket"
                            }
     return res
 
-
 def cal_proba_low_preceds_high(df, market_type="regular"):
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
     case_counts = 0
     events_counts = 0
-    if market_type == "premarket":
-        df = df[(df.index.time <= market_open)]
-    elif market_type == "regular":
-        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-        df = df[df.index.isin(reguhr)]
-    elif market_type == "afterhrs":
-        df = df[df.index.time >= market_close]
-    else:
-        raise ValueError("Invalid market type. Use 'premarket', 'afterhrs', or'regular'.")
-    
+    df = get_market_type_data(df=df, market_type=market_type)
     unique_date = np.unique(df.index.date)
     for day in unique_date:
         day_df = df[df.index.date==day]
@@ -805,7 +750,38 @@ def cal_proba_low_preceds_high(df, market_type="regular"):
         
     return {f"{market_type}_probability": proba}
             
-               
+# get n highest prices and their time
+
+def get_price_and_time(df, market_type: str, num: int, direction: str):
+    if direction not in ["highest", "lowest"]:
+        raise ValueError("Invalid direction. Use 'highest' or 'lowest'.")
+    
+    df = get_market_type_data(df=df, market_type=market_type)
+    
+    if direction == "highest":
+        direction_df = df.nlargest(num, columns="Close")
+    else:
+        direction_df = df.nsmallest(num, columns="Close")
+
+    price = direction_df["Close"]
+    event_date_time = direction_df.index
+    price_time = zip(price, event_date_time)
+    price_time_list = [item for item in price_time] 
+    return price_time_list
+
+def get_daily_price_and_time(df, market_type, num, direction):
+    unique_date = np.unique(df.index.date)
+    daily_price_and_time = {}
+    for day in unique_date:
+        day_df = df[df.index.date==day]
+        price_time = get_price_and_time(df=day_df, num=num, direction=direction,
+                                        market_type=market_type
+                                        )
+        daily_price_and_time[day] = price_time
+    return daily_price_and_time
+
+
+             
 def O_H_LC(df, trading_dates):
     pass
     # check if timestamp for high is before L and L and Close are same time

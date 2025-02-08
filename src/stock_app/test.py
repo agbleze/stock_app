@@ -1,4 +1,5 @@
 
+#%%
 from utils import (cal_proba_current_close_is_lower_than_nextday_high,
                    download_stock_price,
                    calculate_prob_close_lower_thn_open,
@@ -15,7 +16,8 @@ from utils import (cal_proba_current_close_is_lower_than_nextday_high,
                    close_open_diff, plot_column_chart,
                    cal_proba_regular_lowest_in_after_hours,
                    calculate_price_change,
-                   cal_lowest_percent_target_is_below_base_market
+                   cal_lowest_percent_target_is_below_base_market,
+                   get_daily_price_and_time
                    
                    )
 import plotly.express as px
@@ -39,7 +41,15 @@ pft_score = dwave_close_lower_than_nextday_high["percent_lower_scores"]
 more_thn_1 = [pft for pft in pft_score if pft > 1]
 
 (len(more_thn_1) / dwave_close_lower_than_nextday_high["total_instances"]) * 100
+
+
+
 #%%
+
+df = download_minute_interval_data(ticker="IONQ")
+
+get_daily_price_and_time(df=df, market_type="premarket", num=10, direction="highest")
+ #%%
 
 bigbear = download_stock_price(stock_ticker="BBAI")
 
