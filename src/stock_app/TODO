@@ -92,3 +92,62 @@ in and out for about 5 to 10 minutes.
 
 Start monitoring price for any present downward trend, when it v´finally halts and reverses, buy and 
 ride the upward trend to exit quickly. It is noted on bear market
+
+
+
+
+#%% TODO: 
+# Verify the results of cal_proba_regular_lowest_in_after_hours
+# check that they can be successfully executed in real time
+# by ensuring price rise in the after_hours or premarket of the following
+# day after hitting the low from regular hours
+
+
+
+#%% TODO
+' Explore idea of creating stable pies / index for day trading'
+
+# %%
+"""
+Analysis for trading
+
+1. Determine drawn for buy entry limit order and 1% profit sell limit order
+>>>> Requires statistical analysis --- Tools ready for use
+
+
+2. Pattern recognition
+Buy at close and sell at profit the next day -- tools ready for use
+
+
+3. Outside Regular hours
+Buy below regular hours Low price / Close in After hours / Premarket 
+and sell for profit next day -- Tools not ready
+
+
+"""
+
+
+# TODO:
+# Add option to include extended perods to the after market and premarket buy algorithms
+
+# explore statistical analysis to decide whether to execute an 
+# setup. Eg if the lowest price in premarket below the average by 
+# a certain amount or use the std
+
+
+# TODO: Add strategy results to app
+# Add a screener that access a strategy for several stocks 
+# return the best performers -- consider predefine the stocks
+
+
+
+# TODO: Portfolio update
+# get all portfolio ticker, download data, create graph and show % change for each
+# when percentage change is greater than 10% then send an email notification
+
+# what happens when a company beats its guidance 
+
+
+# TODO: performance calculator similar to that on SAP wensite
+# https://www.sap.com/investors/en/stock.html
+

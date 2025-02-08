@@ -1,0 +1,46 @@
+
+
+
+"""Execution strategy
+    
+    Place Buy limit order at a certain price of entry and place sell limit 
+    order below a certain price below to exit at loss. 
+    Then place a buy limit order at the sell limit order used and calculate 
+    the percentage  required to recover loss + profit to determine 
+    new Sell limit order price.
+    
+    
+    Example usage
+    I set buy limit order at $ 10 and went long with a sell limit order of 
+    $11 for profit and set Loss limit order at $ 5. 
+    Now price fall to $5 and sell limit order was triggered so I sold at a lost.
+    Price fell further to $1 and when got to $2, I went long gain and set new sell 
+    limit order at $5 which was successful.
+    
+    If I started with 1000$ for trading, this will be the case.
+    1. 1000/10 -> 100 shares initially
+    2. Amt after selling at 5 -> 500 hence loss f 500
+    3  500/2 -> 250 shares for new buy price
+    4. 250 * $5 -> $1250 -> After selling at new price
+    Profit = 1250 - 1000 -> 250
+    
+    In a case where the initial goal of $11 was achieved then, 
+    profit = 1100 - 1000 -> 100
+    
+    In the case of do nothing and wait for price, then I would have 
+    ended the day with loss of $500. Hence stop losses when implemented well
+    can actually be beneficial to revert a lossing trade to profit.
+    Lot of calculations need to be done to determine this entry and exit points.
+    
+     
+    """
+
+
+"""
+well, I asses the 1% compounding interest (1 ci) to better 
+than 3% profit set aside (3 ps) because earning 1% profit daily 
+on the stock market is more achieveable than 3% because my strategy 
+makes it easier to get 1% scalp than 3% due to the longer exposure 
+than which can to to a reversal before 3% is reached and loss
+"""
+
