@@ -2,14 +2,14 @@
 #%%
 from utils import (cal_proba_current_close_is_lower_than_nextday_high,
                    download_stock_price,
-                   calculate_prob_close_lower_thn_open,
+                   calculate_prob_close_lower_than_open,
                    calculate_proba_close_lower_than_nextday_high_conditional,
-                   cal_close_eq_low, high_low_diff,
+                   cal_proba_close_eq_low, high_low_diff,
                    calculate_proba_close_higher_than_nextday_low,
                    download_minute_interval_data,
                    buy_regular_at_premarket_lowest,
                    get_current_stats_for_market,
-                   get_time_of_event_in_regular_market,
+                   get_time_of_event_in_market_type,
                    get_premarket_stats,
                    cal_proba_low_preceds_high, low_open_diff,
                    buy_afterhrs_at_regular_lowest,
@@ -17,11 +17,14 @@ from utils import (cal_proba_current_close_is_lower_than_nextday_high,
                    cal_proba_regular_lowest_in_after_hours,
                    calculate_price_change,
                    cal_lowest_percent_target_is_below_base_market,
-                   get_daily_price_and_time
+                   get_daily_price_and_time,
+                   cal_proba_of_status,
                    
                    )
 import plotly.express as px
-
+from collections import Counter
+import numpy as np
+import pandas as pd
 ## trading algorithm
 #1. Buy at close price and exit at 1% profit margin
 
@@ -35,20 +38,118 @@ dwave_close_lower_than_nextday_high = cal_proba_current_close_is_lower_than_next
 
 dwave_close_lower_than_nextday_high["probability"]
 
-#%%
-pft_score = dwave_close_lower_than_nextday_high["percent_lower_scores"]
-
-more_thn_1 = [pft for pft in pft_score if pft > 1]
-
-(len(more_thn_1) / dwave_close_lower_than_nextday_high["total_instances"]) * 100
-
-
 
 #%%
 
-df = download_minute_interval_data(ticker="IONQ")
+dwave_close_lower_than_nextday_high.keys()
 
-get_daily_price_and_time(df=df, market_type="premarket", num=10, direction="highest")
+#%%
+dwave_close_lower_than_nextday_high["total_instances"]
+
+#%%
+dwave_percent_lwr = dwave_close_lower_than_nextday_high["percent_lower_scores"]
+
+percent_close_lwr_nextday_high = [int(val) for val in dwave_percent_lwr]
+close_lwr_nextday_high_counter = Counter(percent_close_lwr_nextday_high)
+
+#%%
+
+len(dwave_percent_lwr)
+
+#%%
+close_lwr_nextday_high_counter.most_common(10)
+
+close_lwr_nextday_high_counter[0]/len(dwave_percent_lwr)
+
+
+#%%
+value_list = []
+for i in close_lwr_nextday_high_counter.keys():
+    if i > 0 and i <= 10:
+        value_list.append(close_lwr_nextday_high_counter[i])
+
+
+#%%
+
+np.sum(value_list)/len(dwave_percent_lwr)
+
+
+#%%
+sum(close_lwr_nextday_high_counter.values())
+
+
+#%%
+
+proba_per_percent = {}
+
+for i in close_lwr_nextday_high_counter.keys():
+    total = sum(close_lwr_nextday_high_counter.values())
+    val = close_lwr_nextday_high_counter[i]
+    proba = (val / total) * 100
+    proba_per_percent[i] = proba
+    
+#%%    
+def cal_proba_for_each_percent(percent_data_counter: dict):
+    proba_per_percent = {}
+
+    for i in percent_data_counter.keys():
+        total = sum(percent_data_counter.values())
+        val = percent_data_counter[i]
+        proba = (val / total) * 100
+        proba_per_percent[i] = proba
+    return proba_per_percent
+    
+
+#%%
+
+close_lw_thn_open_res = calculate_prob_close_lower_than_open(dwave)
+
+close_lw_thn_open_res["probability"]
+
+
+#%%
+
+df_mint = download_minute_interval_data(ticker="IONQ")
+
+price_and_time = get_daily_price_and_time(df=df_mint, market_type="premarket",
+                                          num=10, direction="highest"
+                                          )
+
+#%%
+df_daily = download_stock_price("IONQ")
+proba = cal_proba_of_status(df=df_daily)
+
+#%%
+proba["probability"]
+
+#%%
+open_eq_close = cal_proba_of_status(df=df_daily, status="close_eq_high")
+open_eq_close["probability"]
+
+#%%
+open_eq_close["cases"]
+
+#%%
+
+proba_close_lw_open = calculate_prob_close_lower_than_open(df=df_daily)
+proba_close_lw_open["probability"]
+#%%
+resproba = cal_proba_current_close_is_lower_than_nextday_high(df_daily)
+
+resproba["probability"]
+
+
+#%%
+
+ionq_close_hh_nextday_low = calculate_proba_close_higher_than_nextday_low(df_daily)
+
+ionq_close_hh_nextday_low["probability"]
+
+#%%
+
+ionq_close_hh_nextday_low["percent_higher_scores"]
+#%%
+low_open_diff()
  #%%
 
 bigbear = download_stock_price(stock_ticker="BBAI")
@@ -56,6 +157,8 @@ bigbear = download_stock_price(stock_ticker="BBAI")
 #%%
 bigbear_res = cal_proba_current_close_is_lower_than_nextday_high(bigbear)
 
+#%%
+bigbear_res["probability"]
 
 #%%
 
@@ -105,7 +208,7 @@ more_thn_1 = [pft for pft in qsi_res["percent_lower_scores"] if pft > 1]
 
 
 
-laes_close_lwr_thn_opn = calculate_prob_close_lower_thn_open(df=laes)
+laes_close_lwr_thn_opn = calculate_prob_close_lower_than_open(df=laes)
 
 #%%
 
@@ -236,7 +339,7 @@ may have occurred
 
 
 #%%  
-close_eq_low = cal_close_eq_low(laes)
+close_eq_low = cal_proba_close_eq_low(laes)
 
 close_eq_low["probability"]
 
@@ -304,7 +407,7 @@ going long only after a % decline in open price.
 
 #%%
 
-calculate_prob_close_lower_thn_open(df=laes_open_eq_low)
+calculate_prob_close_lower_than_open(df=laes_open_eq_low)
 
 #%%
 close_open_diff(df=laes_open_eq_low)
@@ -424,7 +527,7 @@ more_thn_1 = [pft for pft in pft_score if pft > 1]
 
 #%%
 
-ionq_close_lwr_thn_opn = calculate_prob_close_lower_thn_open(df=ionq_df)
+ionq_close_lwr_thn_opn = calculate_prob_close_lower_than_open(df=ionq_df)
 
 ionq_close_lwr_thn_opn["probability"]
 
@@ -455,7 +558,7 @@ more_thn_1 = [pft for pft in pft_score if pft > 1]
 
 #%%
 
-applovin_close_lwr_thn_opn = calculate_prob_close_lower_thn_open(df=applovin_df)
+applovin_close_lwr_thn_opn = calculate_prob_close_lower_than_open(df=applovin_df)
 
 applovin_close_lwr_thn_opn["probability"]
 
@@ -488,35 +591,6 @@ plot_column_chart(applovin_df)
 #%%
 data_8 = calculate_price_change(data=data_8)
 plot_column_chart(data=data_8)
-
-#%%
-data_6 =  data[data.index.day == 6]
-
-data_6[data_6["Close"]==data_6["Close"].min()]
-
-#%%
-data_7 =  data[data.index.day == 7]
-
-data_7[data_7["Close"]==data_7["Close"].min()]
-
-#%%
-data_8 =  data[data.index.day == 8]
-
-data_8[data_8["Close"]==data_8["Close"].min()]
-
-#%%
-
-data_8["Volume"].cumsum().is_monotonic_increasing
-
-#%%
-
-data.describe()
-#%%
-(97/100)*5.16
-#%%
-dwave[["Close"]].shift(-1) 
-
-
 
 
 
@@ -665,12 +739,12 @@ get_current_stats_for_market(ticker="IONQ", market_type="regular")
 
 #%%
 print(f"{ticker}: Highest time")
-highest_time = get_time_of_event_in_regular_market(df=ionq_min_data)
+highest_time = get_time_of_event_in_market_type(df=ionq_min_data)
 highest_time
 
 #%%
 
-lowest_time = get_time_of_event_in_regular_market(df=ionq_min_data, 
+lowest_time = get_time_of_event_in_market_type(df=ionq_min_data, 
                                                   event="Lowest")
 print(f"{ticker}: Lowest time")
 lowest_time

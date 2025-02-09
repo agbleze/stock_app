@@ -340,7 +340,7 @@ def cal_proba_current_close_is_lower_than_nextday_high(df):
             "total_instances": event_count
             }
 
-def calculate_prob_close_lower_thn_open(df):
+def calculate_prob_close_lower_than_open(df):
     """Calculate the probability that the stock closes lower than 
         the open price
 
@@ -434,7 +434,7 @@ def low_open_diff(df):
 
 
 # Analysis of worst case scenario of O-H-LC
-def cal_close_eq_low(df):
+def cal_proba_close_eq_low(df):
     """Calculates the probability that the Close price was the Lowest 
        price.
 
@@ -524,10 +524,7 @@ def days_to_double(principal, daily_rate):
 def cal_lowest_percent_target_is_below_base_market(df, base_market = "premarket",
                                                     target_market="regular"
                                                     ):
-    market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
-    market_close = pd.Timestamp("16:00", tz="US/Eastern").time()
-    case_counts = 0
-    events_counts = 0
+    res= {}
     
     if base_market not in ["premarket", "regular"]:
         raise ValueError("Invalid base market type. Use 'premarket' or 'regular'.")
@@ -535,23 +532,11 @@ def cal_lowest_percent_target_is_below_base_market(df, base_market = "premarket"
     if target_market not in ["premarket", "regular"]:
         raise ValueError("Invalid target market type. Use 'premarket', 'afterhrs', or'regular'.")
     
-    if base_market == "premarket":
-        base_market_df = df[(df.index.time <= market_open)]
-    elif base_market == "regular":
-        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-        base_market_df = df[df.index.isin(reguhr)]
-        
-    if target_market == "premarket":
-        target_market_df = df[(df.index.time <= market_open)]
-    elif target_market == "regular":
-        open_marktime_list = df[(df.index.time >= market_open)].index.to_list()
-        reguhr = [item for item in open_marktime_list if item.time() <= market_close]
-        target_market_df = df[df.index.isin(reguhr)]
+    base_market_df = get_market_type_data(df=df, market_type=base_market) 
+    target_market_df = get_market_type_data(df=df, market_type=target_market)
         
     unique_date = np.unique(df.index.date)
-   
-    res= {}
+
     for day in unique_date:
         day_target_df = target_market_df[target_market_df.index.date==day]
         day_base_df = base_market_df[base_market_df.index.date==day]
@@ -604,9 +589,10 @@ def compounded_amount(principal, daily_rate, num_trades):
     return accumulated_amount
 
 def create_new_lows(df, target_col="Close"):
+    new_minimums = []
     if target_col not in df.columns:
         raise ValueError(f"Target column '{target_col}' not found in the DataFrame")
-    new_minimums = []
+    
     current_min = float('inf')
     for index, row in df.iterrows():
         if row[target_col] < current_min:
@@ -616,9 +602,10 @@ def create_new_lows(df, target_col="Close"):
     return df
 
 def create_new_highs(df, target_col="Close"):
+    new_maximums = []
     if target_col not in df.columns:
         raise ValueError(f"Target column '{target_col}' not found in the DataFrame")
-    new_maximums = []
+    
     current_max = float('-inf')
     for index, row in df.iterrows():
         if row[target_col] > current_max:
@@ -653,13 +640,13 @@ def download_minute_interval_data(ticker, start_date=None, end_date=None,
                             )
     return data
 
-def get_time_of_event_in_regular_market(df, event="Highest"):
-    reg_df = get_market_type_data(df=df, market_type="regular") 
+def get_time_of_event_in_market_type(df, event="Highest", market_type="regular"):
+    time_of_event_price = []
+    df = get_market_type_data(df=df, market_type=market_type) 
     unique_date = np.unique(df.index.date)
     
-    time_of_event_price = []
     for day in unique_date:
-        day_df = reg_df[reg_df.index.date==day]
+        day_df = df[df.index.date==day]
         if event == "Highest":
             event_df = day_df[day_df["High"] == day_df["High"].max()]
         elif event == "Lowest":
@@ -780,7 +767,26 @@ def get_daily_price_and_time(df, market_type, num, direction):
         daily_price_and_time[day] = price_time
     return daily_price_and_time
 
-
+def cal_proba_of_status(df, status="open_eq_high"):
+    if status not in ["open_eq_high", "open_eq_low", "open_eq_close", "close_eq_low", "close_eq_high"]:
+        raise ValueError("Invalid status. Use 'open_eq_high', 'open_eq_low', 'open_eq_close' or 'close_eq_low', 'close_eq_high'.")
+    df = df.dropna()
+    all_events = len(df)
+    if status == "open_eq_high":
+        cases = df[df["Open"]==df["High"]]
+    elif status == "open_eq_low":
+        cases = df[df["Open"]==df["Low"]]
+    elif status == "open_eq_close":
+        cases = df[df["Open"]==df["Close"]]
+    elif status == "close_eq_low":
+        cases = df[df["Close"]==df["Low"]]
+    elif status == "close_eq_high":
+        cases = df[df["Close"]==df["High"]]
+    case_ccounts = len(cases)
+    proba = (case_ccounts / all_events) * 100
+    return {"probability":proba,
+            "cases":cases
+            }
              
 def O_H_LC(df, trading_dates):
     pass
