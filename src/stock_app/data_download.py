@@ -8,10 +8,10 @@ import yfinance as yf
 ticker = 'LAES'
 stock = yf.Ticker(ticker)
 
-save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/22_01_2025_to_31_01_2025"
+save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/03_02_2025_to_07_02_2025"
 #%% Download data including extended hours
-hist = stock.history(start="2025-01-11", #period='1d',
-                     interval='1m', prepost=True)
+# hist = stock.history(start="2025-01-11", #period='1d',
+#                      interval='1m', prepost=True)
 
 
 #%%
@@ -83,20 +83,22 @@ short_sell_tickers = ["SARO", "BBAI", "QUAD", "NVRI", "DJT", "COIN",
                     ]
 # AMSSY needs debugging for premarket
 # no data -- CGEO, NSKOG, ELMRA
-preselected_shortsell = ["CHRD", "BBAI",]
-for ticker in tickers:
+preselected_shortsell = ["ASTS"]
+for ticker in preselected_shortsell:
     stock = yf.Ticker(ticker)
     # hist = stock.history(start="2025-01-27", period='8d',
     #                      interval='1m', prepost=True
     #                      )
     # hist.to_csv(f"{save_dir}/{ticker}_2025_01_27_to_2025_01_31.csv")
-    
-    hist = stock.history(#start=start_date, end=end_date,
+    #start_date = ""
+    hist = stock.history(#start="2025-02-03", #end=end_date,
                 prepost=True,
                 interval='1m', 
                 period='8d',
                 )
-    hist.to_csv(f"{save_dir}/{ticker}_2025_01_22_to_2025_01_31.csv")
+    hist.to_csv(f"{save_dir}/{ticker}_8days.csv")#2025_02_03_to_2025_02_07.csv")
     #print(hist.index[0])
     #print(hist.index[-1])
 
+
+# %%

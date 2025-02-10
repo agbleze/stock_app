@@ -298,7 +298,15 @@ appside_layout = html.Div(
                                                                                                        )
                                                                                                ],
                                                                                      id="id_strategy_analytics",
-                                                                                     )
+                                                                                     ),
+                                                                html.Br(),
+                                                                dbc.DropdownMenuItem(children=[html.H5(" Daily Price Action",
+                                                                                                       className="bi bi-arrows-move"
+                                                                                                       )
+                                                                                               ],
+                                                                                     id="id_daily_price",
+                                                                                     ),
+                                                                
                                                                 ],
                                                         ),
                                                 dbc.Col([], id="page_content", 
@@ -510,6 +518,53 @@ strategy_layout = html.Div(children=[
     ])
 
 
+
+
+
+
+daily_price_layout = html.Div(children=[
+    html.H3("Daily stock price"),
+    dbc.Row(children=[
+        dbc.Col([dbc.Input(id="id_daily_stock_ticker",
+                            placeholder="Stock ticker as shown in yahoo finance",
+                            type="text"
+                            )
+                ]
+                ),
+        # dbc.Col(dcc.Dropdown(id="id_strategy_type",
+        #             options=[{"label": item[0], "value": item[1]}
+        #                         for item in strategy_types.items()
+        #                     ],
+        #             placeholder="Select Strategy"
+        #             )
+        #         ),
+        # dbc.Col(
+        #     dbc.Input(id="id_strategy_target",
+        #             placeholder="Target profit (%)",
+        #             type="number"
+        #             )
+        # ),
+        dbc.Col(dbc.Switch(id="id_only_last_day",
+                           label="Only Last Day",
+                           value=False
+                             )
+                ),
+        dbc.Col(dbc.Button("Daily Stock Price", id="id_daily_stock_price")),
+        dbc.Col(dbc.Button("Profile", id="id_daily_profile")),
+        dbc.Col(children=[dcc.DatePickerRange(id="id_daily_price_date",
+                                            )
+                        ]
+                ), 
+        ], 
+        ),
+    html.Div(id="id_daily_price_chart_div"),
+    # html.Div(id="id_strategy_backtest_results"),
+    # dbc.Row(id="id_strategy_trigger_plots")
+        
+    ])
+
+
+
 app.layout = appside_layout
 
 app.validation_layout = [appside_layout, stockprice_layout, main_layout, 
@@ -611,11 +666,12 @@ def plot_model_fit(data, forecast_period=120):
               Input(component_id="id_stock_perf", component_property="n_clicks_timestamp"),
               Input(component_id="id_model_perf", component_property="n_clicks_timestamp"),
               Input(component_id="id_strategy_analytics", component_property="n_clicks_timestamp"),
+              Input(component_id="id_daily_price", component_property="n_clicks_timestamp"),
               Input(component_id="id_trained_model_path", component_property="data"),
               
               )
 def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
-                    model_perf, strategy_analytics, stored_data
+                    model_perf, strategy_analytics, daily_price, stored_data
                     ):#boxplot: str, scatter: str, corr: str):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
@@ -644,6 +700,8 @@ def sidebar_display(price_chart: str, portfolio_id, stock_portfolio,
         return model_performance_ui
     elif button_id == "id_strategy_analytics":
         return strategy_layout
+    elif button_id == "id_daily_price":
+        return daily_price_layout
     else:
         return dash.no_update
         
@@ -797,6 +855,9 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
             
         return strategy_components, proba_card, trigger_plot_cols
 
+
+@app.callback(Output(componentid="id_daily_price_chart_div", component_property="children"),
+              Input(component_id="id_daily_stock_ticker", component_property="value"),)
       
 @app.callback(Output(component_id="id_sidebar_offcanvas",component_property="is_open"),
               Input(component_id="id_brand_holder", component_property="n_clicks"),

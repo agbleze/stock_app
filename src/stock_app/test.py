@@ -102,6 +102,9 @@ def cal_proba_for_each_percent(percent_data_counter: dict):
 
 #%%
 
+cal_proba_for_each_percent(close_lwr_nextday_high_counter)
+#%%
+
 close_lw_thn_open_res = calculate_prob_close_lower_than_open(dwave)
 
 close_lw_thn_open_res["probability"]
@@ -707,7 +710,7 @@ selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO",
                    ]
 
 
-
+#%%
 import yfinance as yf
 
 # Example: Apple Inc.
@@ -732,10 +735,10 @@ historical_data = ticker.history(#start="2025-01-27",
 
 #%%
 
-ionq_min_data = download_minute_interval_data(ticker)
+ionq_min_data = download_minute_interval_data(ticker="IONQ")
 
 #%%
-get_current_stats_for_market(ticker="IONQ", market_type="regular")
+get_current_stats_for_market(ticker="IONQ", market_type="premarket")
 
 #%%
 print(f"{ticker}: Highest time")
@@ -767,7 +770,10 @@ premart_stat
 #%%
 regular_stat
 
-
+#%%
 cal_proba_low_preceds_high(df=ionq_min_data, market_type="premarket")
 
+
+#%%
 cal_lowest_percent_target_is_below_base_market(ionq_min_data)
+# %%
