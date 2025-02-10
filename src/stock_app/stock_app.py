@@ -25,7 +25,8 @@ import tensorflow as tf
 from utils import (download_stock_price, cal_proba_premarket_low_in_regular_hr,
                    buy_regular_at_premarket_lowest, 
                    buy_afterhrs_at_regular_lowest, 
-                   cal_proba_regular_lowest_in_after_hours
+                   cal_proba_regular_lowest_in_after_hours,
+                   download_minute_interval_data, get_market_type_data
                    )
 
 
@@ -520,7 +521,7 @@ strategy_layout = html.Div(children=[
 
 
 
-
+market_type = ["All", "regular", "premarket"]
 
 daily_price_layout = html.Div(children=[
     html.H3("Daily stock price"),
@@ -531,13 +532,14 @@ daily_price_layout = html.Div(children=[
                             )
                 ]
                 ),
-        # dbc.Col(dcc.Dropdown(id="id_strategy_type",
-        #             options=[{"label": item[0], "value": item[1]}
-        #                         for item in strategy_types.items()
-        #                     ],
-        #             placeholder="Select Strategy"
-        #             )
-        #         ),
+        dbc.Col(dcc.Dropdown(id="id_daily_market_type",
+                    options=[{"label": item, "value": item}
+                                for item in market_type
+                            ],
+                    value="All",
+                    placeholder="Market type"
+                    )
+                ),
         # dbc.Col(
         #     dbc.Input(id="id_strategy_target",
         #             placeholder="Target profit (%)",
@@ -551,8 +553,7 @@ daily_price_layout = html.Div(children=[
                 ),
         dbc.Col(dbc.Button("Daily Stock Price", id="id_daily_stock_price")),
         dbc.Col(dbc.Button("Profile", id="id_daily_profile")),
-        dbc.Col(children=[dcc.DatePickerRange(id="id_daily_price_date",
-                                            )
+        dbc.Col(children=[dcc.DatePickerRange(id="id_daily_price_date")
                         ]
                 ), 
         ], 
@@ -856,8 +857,47 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
         return strategy_components, proba_card, trigger_plot_cols
 
 
-@app.callback(Output(componentid="id_daily_price_chart_div", component_property="children"),
-              Input(component_id="id_daily_stock_ticker", component_property="value"),)
+@app.callback(Output(component_id="id_daily_price_chart_div", component_property="children"),
+              Input(component_id="id_daily_stock_ticker", component_property="value"),
+              Input(component_id="id_only_last_day", component_property="value"),
+              Input(component_id="id_daily_stock_price", component_property="n_clicks"),
+              Input(component_id="id_daily_profile", component_property="n_clicks"),
+              Input(component_id="id_daily_price_date", component_property="start_date"),
+              Input(component_id="id_daily_price_date", component_property="end_date"),
+              Input(component_id="id_daily_market_type", component_property="value")
+              )
+def create_daily_price_chart(daily_stock_ticker, only_last_day, daily_price_button_clicked,
+                             daily_profile_button_clicked, start_date, end_date,
+                             market_type_value
+                             ):
+    if daily_price_button_clicked:
+        data = download_minute_interval_data(ticker=daily_stock_ticker,
+                                      start_date=start_date, end_date=end_date
+                                      )
+        unique_date = np.unique(data.index.date)
+        if market_type_value != "All":
+            data = get_market_type_data(df=data, market_type=market_type_value)
+        stock_graphs = []
+        if not only_last_day:
+            for item in unique_date:
+                day_data = data[data.index.date == item]
+                
+                fig = px.line(data_frame=day_data, x=day_data.index,
+                                y="Close", title=f"{daily_stock_ticker}: {item}",
+                                template="plotly_dark"
+                                )
+                stock_graphs.append(dbc.Col(dcc.Graph(figure=fig)))
+        else:
+            last_day = unique_date[-1]
+            day_data = data[data.index.date == last_day]
+            
+            fig = px.line(data_frame=day_data, x=day_data.index,
+                                y="Close", title=f"{daily_stock_ticker}: {last_day}",
+                                template="plotly_dark"
+                                )
+            stock_graphs.append(dbc.Col(dcc.Graph(figure=fig)))
+        return stock_graphs
+                
       
 @app.callback(Output(component_id="id_sidebar_offcanvas",component_property="is_open"),
               Input(component_id="id_brand_holder", component_property="n_clicks"),
