@@ -26,7 +26,8 @@ from utils import (download_stock_price, cal_proba_premarket_low_in_regular_hr,
                    buy_regular_at_premarket_lowest, 
                    buy_afterhrs_at_regular_lowest, 
                    cal_proba_regular_lowest_in_after_hours,
-                   download_minute_interval_data, get_market_type_data
+                   download_minute_interval_data, get_market_type_data,
+                   plot_column_chart, calculate_price_change
                    )
 
 
@@ -540,12 +541,12 @@ daily_price_layout = html.Div(children=[
                     placeholder="Market type"
                     )
                 ),
-        # dbc.Col(
-        #     dbc.Input(id="id_strategy_target",
-        #             placeholder="Target profit (%)",
-        #             type="number"
-        #             )
-        # ),
+        dbc.Col(
+            dbc.Switch(id="id_daily_column_chart",
+                    label="Column chart",
+                    value=False
+                    )
+        ),
         dbc.Col(dbc.Switch(id="id_only_last_day",
                            label="Only Last Day",
                            value=False
@@ -864,11 +865,12 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
               Input(component_id="id_daily_profile", component_property="n_clicks"),
               Input(component_id="id_daily_price_date", component_property="start_date"),
               Input(component_id="id_daily_price_date", component_property="end_date"),
-              Input(component_id="id_daily_market_type", component_property="value")
+              Input(component_id="id_daily_market_type", component_property="value"),
+              Input(component_id="id_daily_column_chart", component_property="value")
               )
 def create_daily_price_chart(daily_stock_ticker, only_last_day, daily_price_button_clicked,
                              daily_profile_button_clicked, start_date, end_date,
-                             market_type_value
+                             market_type_value, use_daily_column
                              ):
     if daily_price_button_clicked:
         data = download_minute_interval_data(ticker=daily_stock_ticker,
@@ -881,11 +883,15 @@ def create_daily_price_chart(daily_stock_ticker, only_last_day, daily_price_butt
         if not only_last_day:
             for item in unique_date:
                 day_data = data[data.index.date == item]
-                
-                fig = px.line(data_frame=day_data, x=day_data.index,
-                                y="Close", title=f"{daily_stock_ticker}: {item}",
-                                template="plotly_dark"
-                                )
+                day_data = calculate_price_change(data=day_data)
+                title = f"{daily_stock_ticker}: {item}"
+                if use_daily_column:
+                    fig = plot_column_chart(data=day_data, title=title)
+                else:
+                    fig = px.line(data_frame=day_data, x=day_data.index,
+                                    y="Close", title=title,
+                                    template="plotly_dark"
+                                    )
                 stock_graphs.append(dbc.Col(dcc.Graph(figure=fig)))
         else:
             last_day = unique_date[-1]

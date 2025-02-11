@@ -489,13 +489,16 @@ def close_open_diff(df):
     return df
 
 def plot_column_chart(data, y="Close", hover_data=["pct_change"],
-                      marker_color="color"
+                      marker_color="color", title=None
                       ):
+    if not title:
+        title = ""
     fig = px.bar(data_frame=data, x=data.index, y=y,
                 template="plotly_dark",
                 #width=1800,
                 height=800,
-                hover_data=hover_data
+                hover_data=hover_data,
+                title=title
                 # color="status_rise"
                 )
     fig.update_traces(marker_color=data[marker_color].to_list())
