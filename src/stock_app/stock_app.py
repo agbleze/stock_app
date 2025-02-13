@@ -27,7 +27,8 @@ from utils import (download_stock_price, cal_proba_premarket_low_in_regular_hr,
                    buy_afterhrs_at_regular_lowest, 
                    cal_proba_regular_lowest_in_after_hours,
                    download_minute_interval_data, get_market_type_data,
-                   plot_column_chart, calculate_price_change
+                   plot_column_chart, calculate_price_change,
+                   get_premarket_stats
                    )
 
 
@@ -660,7 +661,36 @@ def plot_model_fit(data, forecast_period=120):
                       )
     return fig
     
-       
+
+
+def create_stats_card(stat_lstgrp, stat_graph, header="Premarket Stats"):
+    stats_card = dbc.Card([
+                            dbc.Row(
+                                    dbc.CardHeader(header),
+                                    dbc.Col(dbc.CardImg(children=stat_graph),
+                                            width=3
+                                            ),
+                                    dbc.Col(
+                                            dbc.CardBody([stat_lstgrp
+                                                            # dbc.Row([
+                                                            #         dbc.Col()
+                                                            # ])
+                                                        ])
+                                            )
+                            ),
+                        ], color="warning", inverse=True
+                            )
+    return stats_card
+        
+def create_stats_listgroup(df):
+    lstgrp = dbc.ListGroup([
+                                dbc.ListGroupItem(f"{col} ===> {val}") 
+                                for col, val in df.items()
+                            ],
+                        flush=True
+                        )
+    return lstgrp        
+               
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="page_content", component_property="children"),
               Input(component_id="id_price_chart", component_property="n_clicks_timestamp"),
@@ -862,7 +892,7 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
               Input(component_id="id_daily_stock_ticker", component_property="value"),
               Input(component_id="id_only_last_day", component_property="value"),
               Input(component_id="id_daily_stock_price", component_property="n_clicks"),
-              Input(component_id="id_daily_profile", component_property="n_clicks"),
+              #Input(component_id="id_daily_profile", component_property="n_clicks"),
               Input(component_id="id_daily_price_date", component_property="start_date"),
               Input(component_id="id_daily_price_date", component_property="end_date"),
               Input(component_id="id_daily_market_type", component_property="value"),
@@ -904,7 +934,36 @@ def create_daily_price_chart(daily_stock_ticker, only_last_day, daily_price_butt
             stock_graphs.append(dbc.Col(dcc.Graph(figure=fig)))
         return stock_graphs
                 
-      
+   
+   
+@app.callback(Output(component_id="", component_property=""),
+              Input(component_id="id_daily_stock_ticker", component_property="value"),
+              Input(component_id="id_daily_profile", component_property="n_clicks"),
+              Input(component_id="id_daily_price_date", component_property="start_date"),
+              Input(component_id="id_daily_price_date", component_property="end_date"),
+              )
+def create_daily_stock_profile(daily_stock_ticker, profile_clicked,
+                               start_date, end_date
+                               ):
+    if profile_clicked:
+        ionq_min_data = download_minute_interval_data(ticker=daily_stock_ticker, 
+                                                      start_date=start_date,
+                                                      end_date=end_date
+                                                      )
+        premart_stat = get_premarket_stats(ionq_min_data, market_type="premarket")
+        regular_stat = get_premarket_stats(ionq_min_data, market_type="regular")
+        
+        premarket_card_list = create_stats_listgroup(df=premart_stat)
+        
+    
+        
+
+
+
+
+
+
+
 @app.callback(Output(component_id="id_sidebar_offcanvas",component_property="is_open"),
               Input(component_id="id_brand_holder", component_property="n_clicks"),
               State(component_id="id_sidebar_offcanvas", component_property="is_open")

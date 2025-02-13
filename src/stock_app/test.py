@@ -714,31 +714,23 @@ selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO",
 import yfinance as yf
 
 # Example: Apple Inc.
-ticker = 'IONQ'
+ticker = 'SOUN'
 stock = yf.Ticker(ticker)
 stock_price = download_stock_price(stock_ticker=ticker)
 
-calculate_proba_close_higher_than_nextday_low(stock_price)
+proba_close_hh_nextday_low = calculate_proba_close_higher_than_nextday_low(stock_price)
 
-
-
-
-ticker = yf.Ticker("IONQ")
-
-historical_data = ticker.history(#start="2025-01-27", 
-                                        # prepost=True,
-                                        interval='1m', 
-                                        period='1d',
-                                        )
+proba_close_hh_nextday_low["probability"]
 
 #%%
 
-#%%
-
-ionq_min_data = download_minute_interval_data(ticker="IONQ")
+ionq_min_data = download_minute_interval_data(ticker=ticker)
 
 #%%
-get_current_stats_for_market(ticker="IONQ", market_type="premarket")
+get_current_stats_for_market(ticker=ticker, market_type="premarket")
+
+#%%
+get_current_stats_for_market(ticker=ticker, market_type="regular")
 
 #%%
 print(f"{ticker}: Highest time")
