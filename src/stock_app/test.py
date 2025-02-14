@@ -714,7 +714,7 @@ selected_aftermarket_stocks = ["CRWD", "ANET", "AVGO",
 import yfinance as yf
 
 # Example: Apple Inc.
-ticker = 'SOUN'
+ticker = 'ENVX'
 stock = yf.Ticker(ticker)
 stock_price = download_stock_price(stock_ticker=ticker)
 
@@ -732,6 +732,10 @@ get_current_stats_for_market(ticker=ticker, market_type="premarket")
 #%%
 get_current_stats_for_market(ticker=ticker, market_type="regular")
 
+
+#%%
+
+cal_proba_low_preceds_high(ionq_min_data)
 #%%
 print(f"{ticker}: Highest time")
 highest_time = get_time_of_event_in_market_type(df=ionq_min_data)
