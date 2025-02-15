@@ -479,9 +479,8 @@ strategy_types = {"Buy Premarket low in Regular": "pr_lw_reg",
                   "Buy Regular low in After hours": "reg_lw_after"
                   }
 
-strategy_layout = html.Div(children=[
-    html.H3("Strategy Analysis"),
-    dbc.Row(children=[
+strategy_layout = html.Div(children=[html.H3("Strategy Analysis"),
+dbc.Row(children=[
         dbc.Col([dbc.Input(id="id_strategy_stock_ticker",
                             placeholder="Stock ticker as shown in yahoo finance",
                             type="text"
@@ -599,6 +598,7 @@ def create_portfolio_graphs(company_ticker):
     return html.Div(children=head_component)
             
 
+
 def plot_forecast_component(data):
     data["Date"] = data.index.values
     data.index = pd.to_datetime(data.index)
@@ -663,13 +663,16 @@ def plot_model_fit(data, forecast_period=120):
     
 
 
-def create_stats_card(stat_lstgrp, stat_graph, header="Premarket Stats"):
+def create_stats_card(stat_lstgrp, #stat_graph, 
+                      header="Premarket Stats",
+                      color="warning"
+                      ):
     stats_card = dbc.Card([
-                            dbc.Row(
+                            dbc.Row([
                                     dbc.CardHeader(header),
-                                    dbc.Col(dbc.CardImg(children=stat_graph),
-                                            width=3
-                                            ),
+                                    # dbc.Col(dbc.CardImg(children=stat_graph),
+                                    #         width=3
+                                    #         ),
                                     dbc.Col(
                                             dbc.CardBody([stat_lstgrp
                                                             # dbc.Row([
@@ -677,8 +680,9 @@ def create_stats_card(stat_lstgrp, stat_graph, header="Premarket Stats"):
                                                             # ])
                                                         ])
                                             )
-                            ),
-                        ], color="warning", inverse=True
+                                    ]
+                                ),
+                        ], color=color, inverse=True
                             )
     return stats_card
         
@@ -691,6 +695,21 @@ def create_stats_listgroup(df):
                         )
     return lstgrp        
                
+               
+def create_stat_components(stat_data: dict, stat_type: str = "Premarket Stats", color="warning"):
+    stat_card_list = []
+    stat_days = []
+    for day in stat_data:
+        df = stat_data[day]
+        stat_card_list.append(create_stats_listgroup(df=df))
+        stat_days.append(day)
+    stat_component = []
+    for lst, day in zip(stat_card_list, stat_days):
+        header = f"{stat_type}  {day}"
+        stat_component.append(create_stats_card(stat_lstgrp=lst, header=header, color=color))
+        
+    return stat_component
+
 @functools.lru_cache(maxsize=None)
 @app.callback(Output(component_id="page_content", component_property="children"),
               Input(component_id="id_price_chart", component_property="n_clicks_timestamp"),
@@ -892,7 +911,7 @@ def get_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
               Input(component_id="id_daily_stock_ticker", component_property="value"),
               Input(component_id="id_only_last_day", component_property="value"),
               Input(component_id="id_daily_stock_price", component_property="n_clicks"),
-              #Input(component_id="id_daily_profile", component_property="n_clicks"),
+              Input(component_id="id_daily_profile", component_property="n_clicks"),
               Input(component_id="id_daily_price_date", component_property="start_date"),
               Input(component_id="id_daily_price_date", component_property="end_date"),
               Input(component_id="id_daily_market_type", component_property="value"),
@@ -933,19 +952,7 @@ def create_daily_price_chart(daily_stock_ticker, only_last_day, daily_price_butt
                                 )
             stock_graphs.append(dbc.Col(dcc.Graph(figure=fig)))
         return stock_graphs
-                
-   
-   
-@app.callback(Output(component_id="", component_property=""),
-              Input(component_id="id_daily_stock_ticker", component_property="value"),
-              Input(component_id="id_daily_profile", component_property="n_clicks"),
-              Input(component_id="id_daily_price_date", component_property="start_date"),
-              Input(component_id="id_daily_price_date", component_property="end_date"),
-              )
-def create_daily_stock_profile(daily_stock_ticker, profile_clicked,
-                               start_date, end_date
-                               ):
-    if profile_clicked:
+    elif daily_profile_button_clicked:
         ionq_min_data = download_minute_interval_data(ticker=daily_stock_ticker, 
                                                       start_date=start_date,
                                                       end_date=end_date
@@ -953,7 +960,51 @@ def create_daily_stock_profile(daily_stock_ticker, profile_clicked,
         premart_stat = get_premarket_stats(ionq_min_data, market_type="premarket")
         regular_stat = get_premarket_stats(ionq_min_data, market_type="regular")
         
-        premarket_card_list = create_stats_listgroup(df=premart_stat)
+        # premarket_card_list = []
+        # premarket_days = []
+        # for day in premart_stat:
+        #     df = premart_stat[day]
+        #     premarket_card_list.append(create_stats_listgroup(df=df))
+        #     premarket_days.append(day)
+        
+        # stat_card_list = []
+        # for lst, day in zip(premarket_card_list, premarket_days):
+        #     header = f"Premarket Stats  {day}"
+        #     stat_card_list.append(create_stats_card(stat_lstgrp=lst, header=header))
+        # res = stat_card_list
+        
+        premarket_comp = create_stat_components(stat_data=premart_stat, stat_type="Premarket Stats")
+        regular_comp = create_stat_components(stat_data=regular_stat, stat_type="Regular Stats", color="success")
+        return dbc.Row([html.H3(daily_stock_ticker),
+                        dbc.Col(premarket_comp),
+                        dbc.Col(regular_comp)
+                        ]
+                        )
+        
+        
+            
+   
+   
+# @app.callback(Output(component_id="id_daily_price_chart_div", component_property="children"),
+#               Input(component_id="id_daily_stock_ticker", component_property="value"),
+#               Input(component_id="id_daily_profile", component_property="n_clicks"),
+#               Input(component_id="id_daily_price_date", component_property="start_date"),
+#               Input(component_id="id_daily_price_date", component_property="end_date"),
+#               )
+# def create_daily_stock_profile(daily_stock_ticker, profile_clicked,
+#                                start_date, end_date
+#                                ):
+#     if profile_clicked:
+#         ionq_min_data = download_minute_interval_data(ticker=daily_stock_ticker, 
+#                                                       start_date=start_date,
+#                                                       end_date=end_date
+#                                                       )
+#         premart_stat = get_premarket_stats(ionq_min_data, market_type="premarket")
+#         regular_stat = get_premarket_stats(ionq_min_data, market_type="regular")
+        
+#         premarket_card_list = create_stats_listgroup(df=premart_stat)
+#         return premarket_card_list
+        
         
     
         
