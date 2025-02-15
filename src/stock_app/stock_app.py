@@ -663,16 +663,17 @@ def plot_model_fit(data, forecast_period=120):
     
 
 
-def create_stats_card(stat_lstgrp, #stat_graph, 
+def create_stats_card(stat_lstgrp, stat_graph, 
                       header="Premarket Stats",
                       color="warning"
                       ):
     stats_card = dbc.Card([
                             dbc.Row([
                                     dbc.CardHeader(header),
-                                    # dbc.Col(dbc.CardImg(children=stat_graph),
-                                    #         width=3
-                                    #         ),
+                                    dbc.Col(#dbc.CardImg(children=stat_graph),
+                                            stat_graph,
+                                            #width=3
+                                            ),
                                     dbc.Col(
                                             dbc.CardBody([stat_lstgrp
                                                             # dbc.Row([
@@ -696,17 +697,24 @@ def create_stats_listgroup(df):
     return lstgrp        
                
                
-def create_stat_components(stat_data: dict, stat_type: str = "Premarket Stats", color="warning"):
+def create_stat_components(stat_data: dict, data, stat_type: str = "Premarket Stats", color="warning",
+                           ):
     stat_card_list = []
     stat_days = []
+    fig_list = []
     for day in stat_data:
+        header = f"{stat_type}  {day}"
         df = stat_data[day]
+        plot_df = data[data.index.date == day]
+        fig = px.line(data_frame=plot_df, x=plot_df.index, y="Close", title=header, template="plotly_dark")
+        
+        fig_list.append(dcc.Graph(figure=fig))
         stat_card_list.append(create_stats_listgroup(df=df))
         stat_days.append(day)
     stat_component = []
-    for lst, day in zip(stat_card_list, stat_days):
+    for lst, day, fig in zip(stat_card_list, stat_days, fig_list):
         header = f"{stat_type}  {day}"
-        stat_component.append(create_stats_card(stat_lstgrp=lst, header=header, color=color))
+        stat_component.append(create_stats_card(stat_lstgrp=lst, header=header, color=color, stat_graph=fig))
         
     return stat_component
 
@@ -953,12 +961,14 @@ def create_daily_price_chart(daily_stock_ticker, only_last_day, daily_price_butt
             stock_graphs.append(dbc.Col(dcc.Graph(figure=fig)))
         return stock_graphs
     elif daily_profile_button_clicked:
-        ionq_min_data = download_minute_interval_data(ticker=daily_stock_ticker, 
+        data = download_minute_interval_data(ticker=daily_stock_ticker, 
                                                       start_date=start_date,
                                                       end_date=end_date
                                                       )
-        premart_stat = get_premarket_stats(ionq_min_data, market_type="premarket")
-        regular_stat = get_premarket_stats(ionq_min_data, market_type="regular")
+        premarket_df = get_market_type_data(df=data, market_type="premarket")
+        regular_df = get_market_type_data(df=data, market_type="regular")
+        premart_stat = get_premarket_stats(data, market_type="premarket")
+        regular_stat = get_premarket_stats(data, market_type="regular")
         
         # premarket_card_list = []
         # premarket_days = []
@@ -973,8 +983,12 @@ def create_daily_price_chart(daily_stock_ticker, only_last_day, daily_price_butt
         #     stat_card_list.append(create_stats_card(stat_lstgrp=lst, header=header))
         # res = stat_card_list
         
-        premarket_comp = create_stat_components(stat_data=premart_stat, stat_type="Premarket Stats")
-        regular_comp = create_stat_components(stat_data=regular_stat, stat_type="Regular Stats", color="success")
+        premarket_comp = create_stat_components(stat_data=premart_stat, stat_type="Premarket Stats", 
+                                                data=premarket_df
+                                                )
+        regular_comp = create_stat_components(stat_data=regular_stat, stat_type="Regular Stats", color="success", 
+                                              data=regular_df
+                                              )
         return dbc.Row([html.H3(daily_stock_ticker),
                         dbc.Col(premarket_comp),
                         dbc.Col(regular_comp)
