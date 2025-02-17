@@ -660,7 +660,7 @@ def get_time_of_event_in_market_type(df, event="Highest", market_type="regular")
         time_of_event_price.append(event_time)
     return time_of_event_price
 
-def get_premarket_stats(df, market_type="premarket"):
+def get_market_type_stats(df, market_type="premarket"):
     res= {}
     df = get_market_type_data(df=df, market_type=market_type)
     unique_date = np.unique(df.index.date)
@@ -675,13 +675,13 @@ def get_premarket_stats(df, market_type="premarket"):
         min_time = day_df[day_df["Low"] == min_value].index
         max_time = day_df[day_df["High"] == max_value].index
         
-        res[day] = {f'{market_type}_min': {min_value}, 
-                    f'{market_type}_max': {max_value}, 
-                    f'{market_type}_mean': {mean_value}, 
-                    f'{market_type}_median': {median_value},
-                    f'{market_type}_std': {std_value},
-                    f'{market_type}_min_time': {str(min_time.time)},
-                    f'{market_type}_max_time': {str(max_time.time)}
+        res[day] = {f'{market_type}_min': round(min_value, 5), 
+                    f'{market_type}_max': round(max_value, 5), 
+                    f'{market_type}_mean': round(mean_value, 5),
+                    f'{market_type}_median': round(median_value,5),
+                    f'{market_type}_std': round(std_value, 5),
+                    f'{market_type}_min_time': str(min_time.time),
+                    f'{market_type}_max_time': str(max_time.time)
                     }
                     
     return res

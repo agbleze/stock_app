@@ -3,12 +3,13 @@
 
 #%%
 import yfinance as yf
-
+import os
 # Example: Apple Inc.
 ticker = 'LAES'
 stock = yf.Ticker(ticker)
 
-save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/03_02_2025_to_07_02_2025"
+save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/10_02_2025_to_14_02_2025"
+os.makedirs(save_dir, exist_ok=True)
 #%% Download data including extended hours
 # hist = stock.history(start="2025-01-11", #period='1d',
 #                      interval='1m', prepost=True)
@@ -91,12 +92,15 @@ for ticker in preselected_shortsell:
     #                      )
     # hist.to_csv(f"{save_dir}/{ticker}_2025_01_27_to_2025_01_31.csv")
     #start_date = ""
-    hist = stock.history(#start="2025-02-03", #end=end_date,
-                prepost=True,
-                interval='1m', 
-                period='8d',
-                )
-    hist.to_csv(f"{save_dir}/{ticker}_8days.csv")#2025_02_03_to_2025_02_07.csv")
+    start="2025-02-10"
+    end="2025-02-14"
+    hist = stock.history(start=start, 
+                         #end=end,
+                        prepost=True,
+                        interval='1m', 
+                        period='8d',
+                        )
+    hist.to_csv(f"{save_dir}/{ticker}_2025_02_10_to_2025_02_14.csv")#2025_02_03_to_2025_02_07.csv")
     #print(hist.index[0])
     #print(hist.index[-1])
 

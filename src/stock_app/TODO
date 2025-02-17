@@ -151,3 +151,7 @@ and sell for profit next day -- Tools not ready
 # TODO: performance calculator similar to that on SAP wensite
 # https://www.sap.com/investors/en/stock.html
 
+
+
+### Use statistics in the previous regular session and 
+# current premarket session to determine trade

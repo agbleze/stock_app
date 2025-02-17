@@ -10,7 +10,7 @@ from utils import (cal_proba_current_close_is_lower_than_nextday_high,
                    buy_regular_at_premarket_lowest,
                    get_current_stats_for_market,
                    get_time_of_event_in_market_type,
-                   get_premarket_stats,
+                   get_market_type_stats,
                    cal_proba_low_preceds_high, low_open_diff,
                    buy_afterhrs_at_regular_lowest,
                    close_open_diff, plot_column_chart,
@@ -749,8 +749,8 @@ print(f"{ticker}: Lowest time")
 lowest_time
 
 #%%
-premart_stat = get_premarket_stats(ionq_min_data, market_type="premarket")
-regular_stat = get_premarket_stats(ionq_min_data, market_type="regular")
+premart_stat = get_market_type_stats(ionq_min_data, market_type="premarket")
+regular_stat = get_market_type_stats(ionq_min_data, market_type="regular")
 
 #%%
 print(ticker)
