@@ -30,7 +30,11 @@ from utils import (download_stock_price, cal_proba_premarket_low_in_regular_hr,
                    download_minute_interval_data, get_market_type_data,
                    plot_column_chart, calculate_price_change,
                    get_market_type_stats, 
-                   get_current_stats_for_market
+                   get_current_stats_for_market,
+                   cal_proba_close_eq_low,
+                   cal_proba_current_close_is_lower_than_nextday_high,
+                   calculate_prob_close_lower_than_open
+                   
                    )
 
 
@@ -501,6 +505,10 @@ dbc.Row(children=[
         ], 
         ),
     html.Div(id="id_strategy_probability_occurrence"),
+    dbc.Accordion([dbc.AccordionItem(title="Probability Results"),
+                   dbc.AccordionItem(title="Short sell")
+                   ]
+                  ),
     html.Div(id="id_strategy_backtest_results"),
     dbc.Row(id="id_strategy_trigger_plots")
         
