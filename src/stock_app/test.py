@@ -596,7 +596,8 @@ data_8 = calculate_price_change(data=data_8)
 plot_column_chart(data=data_8)
 
 
-
+#%%
+import yfinance as yf
 intc_stock = yf.Ticker("CRNC")
 
 intc_prepost =intc_stock.history(start="2025-01-27", prepost=True,
@@ -773,3 +774,11 @@ cal_proba_low_preceds_high(df=ionq_min_data, market_type="premarket")
 #%%
 cal_lowest_percent_target_is_below_base_market(ionq_min_data)
 # %%
+"""
+4. Probability that if current open is higher than previous close than 
+   current low will be higher than prevous close
+"""
+
+
+def cal_proba_open_hh_previous_close(df: pd.DataFrame) -> dict:
+    pass
