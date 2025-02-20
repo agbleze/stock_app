@@ -555,8 +555,6 @@ daily_price_layout = html.Div(children=[
         ], 
         ),
     html.Div(id="id_daily_price_chart_div"),
-    # html.Div(id="id_strategy_backtest_results"),
-    # dbc.Row(id="id_strategy_trigger_plots")
         
     ])
 
@@ -1111,6 +1109,7 @@ def show_model_config_dialog(model_config_button_click, prediction_config_button
               Input(component_id="id_trained_model_path", component_property="data"),
               Input(component_id="id_model_type", component_property="value"),
               
+              
               )  
 def train_model(train_size, save_model_as, 
                 window_size, horizon_size, buffer_size,
@@ -1134,7 +1133,7 @@ def train_model(train_size, save_model_as,
         model_name = [stock_ticker if not save_model_as else save_model_as][0]
         save_model_path = f"model_store/{model_name}.h5"
         target = train_df[['Close']]
-    
+ 
         mod_cls = Model_Trainer(steps_per_epoch=steps_per_epoch, 
                                 epochs=num_epochs, 
                                 predictors=predictors,
@@ -1193,7 +1192,7 @@ def train_model(train_size, save_model_as,
             res_stored_data = []
         else:
             res_stored_data = stored_data
-        res_stored_data.append({f"{stock_ticker}": {#"train_history": train_hist, 
+        res_stored_data.append({f"{stock_ticker}": {
                                     "model_path": save_model_path,
                                     "model_performance_children": model_performance_children, #model_performance_children,
                                     "scaler_info": {"fit_end_index": fit_end_index},
