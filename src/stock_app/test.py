@@ -782,3 +782,83 @@ cal_lowest_percent_target_is_below_base_market(ionq_min_data)
 
 def cal_proba_open_hh_previous_close(df: pd.DataFrame) -> dict:
     pass
+
+
+
+#%%
+from yahoo_fin.stock_info import (get_data, get_live_price, get_day_gainers, get_day_losers,
+                                  get_premarket_price, get_postmarket_price,
+                                  get_stats, get_market_status,
+                                  get_cash_flow
+                                  )
+
+# %%
+
+
+get_cash_flow("nflx")
+
+#%%
+
+
+#%%
+from alpaca.data.historical import CryptoHistoricalDataClient
+
+# No keys required for crypto data
+
+from alpaca.data.requests import CryptoBarsRequest
+from alpaca.data.timeframe import TimeFrame
+from datetime import datetime
+# Creating request object
+request_params = CryptoBarsRequest(
+  symbol_or_symbols=["BTC/USD"],
+  timeframe=TimeFrame.Minute,
+  start=datetime(2022, 9, 1),
+  end=datetime(2025, 2, 21)
+)
+
+client = CryptoHistoricalDataClient()
+# %%
+# Retrieve daily bars for Bitcoin in a DataFrame and printing it
+btc_bars = client.get_crypto_bars(request_params)
+
+# Convert to dataframe
+btc_bars.df
+
+
+#%%
+
+btc_bars.df.to_csv("btc_usd_2022_2025.csv")
+
+
+
+#%%
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.timeframe import TimeFrame
+from alpaca.data.requests import StockBarsRequest
+from constant import ALPACA_API_KEY, ALPACA_SECRET_KEY
+
+#%%
+stock_bars_request = StockBarsRequest(symbol_or_symbols="IONQ",
+                                       timeframe=TimeFrame.Minute,
+                                       start=datetime(2024, 9, 1),
+                                       end=datetime(2025, 2, 21)
+                                       )
+
+stock_client = StockHistoricalDataClient(api_key=ALPACA_API_KEY,
+                                         secret_key=ALPACA_SECRET_KEY
+                                         )
+
+
+
+#%%
+
+
+stock_bars = stock_client.get_stock_bars(stock_bars_request)
+
+
+#%%
+
+stock_bars.df.to_csv("IONQ_2024_9_1_to_2025_2_21.csv")
+
+
+# %%
