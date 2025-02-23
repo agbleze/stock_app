@@ -67,6 +67,42 @@ def cal_proba_regular_lowest_in_after_hours(df,
             }
     
 
+
+def cal_proba_regular_highest_in_after_hours(df, 
+                                            percent_to_increase_regular_highest_price=0,
+                                            target_col="Close"
+                                            ):
+    case_count = 0
+    all_count = 0
+    case_date = []
+    reg_df = get_market_type_data(df=df, market_type="regular") 
+    afterhr_df = get_market_type_data(df=df, market_type="afterhrs")
+    unique_date = np.unique(df.index.date)
+    
+    for item in unique_date:
+        day_reguhr = reg_df[reg_df.index.date == item]
+        day_afterhr = afterhr_df[afterhr_df.index.date == item]
+        day_reguhr_highmax = day_reguhr[target_col].max()
+        day_reguhr_highmax = (((100 + percent_to_increase_regular_highest_price) / 100)
+                            * day_reguhr_highmax
+                            )
+        day_afterhr_highmax = day_afterhr[target_col].max()
+        if day_afterhr_highmax >= day_reguhr_highmax:
+            print(f"{item} after hours highest : {day_afterhr_highmax}")
+            print(f"{item} regular hours highest : {day_reguhr_highmax}")
+            case_count += 1
+            all_count += 1
+            case_date.append(item)
+        else:
+            all_count += 1
+    if case_count > 0:
+        proba = (case_count / all_count) * 100
+    else:
+        proba = 0.0
+    return {"probability": proba,
+            "case_date": case_date
+            }
+
 #%% TODO: Add plots with horizontal lines  showing the lowest price
 # in regular hours and a vertical line showing when it went long 
 # in after hours and another vertical for sell time
@@ -144,6 +180,84 @@ def buy_afterhrs_at_regular_lowest(df, profit_percent=1,
             }          
                    
 
+
+
+
+def short_sell_afterhrs_at_regular_highest(df, profit_percent=1,
+                                           percent_to_increase_regular_highest_price=0,
+                                           target_col="Close"
+                                          ):
+    """Estimate the scenario of short selling in the after hours at the highest regular price
+
+    Args:
+        df (_type_): _description_
+        profit_percent (int, optional): _description_. Defaults to 1.
+        percent_to_increase_regular_highest_price: Percent by which to increase regular session highest price
+
+    Returns:
+        Dict: Keys are buy_price_list, buy_day_list, sell_price_list, sell_day_list, profit_lose_list, profit_lose_percent_list 
+    """
+    reg_df = get_market_type_data(df=df, market_type="regular") 
+    unique_date = np.unique(df.index.date)
+    afterhr_df = get_market_type_data(df=df, market_type="afterhrs")
+    buy_price_list = []
+    buy_day_list = []
+    sell_price_list = []
+    sell_day_list = []
+    profit_lose_list = []
+    profit_lose_percent_list = []
+    for item in unique_date:
+        day_reguhr = reg_df[reg_df.index.date == item]
+        day_afterhr = afterhr_df[afterhr_df.index.date == item]
+        day_reguhr_highmax = day_reguhr[target_col].max()
+        if percent_to_increase_regular_highest_price > 0:
+            day_reguhr_highmax = (((100 + float(percent_to_increase_regular_highest_price)) / 100)
+                                    * day_reguhr_highmax
+                                    )
+        enter_post = False
+        buy_price = 0
+        exit_price = 0
+        exit_post = False
+        for row_index, row_data in day_afterhr.iterrows():
+            if not enter_post:
+                if row_data[target_col] >= day_reguhr_highmax:
+                    if row_index == day_afterhr.index[-1]:
+                        print(f"Not short sold because it is last time of after hours {row_index}")
+                    else:
+                        sell_price = row_data[target_col]
+                        sell_price_list.append(sell_price)
+                        sell_day_list.append(row_index)
+                        enter_post = True
+                        exit_price = ((100 - profit_percent)/100) * sell_price
+            elif enter_post:
+                if not exit_post:
+                    if row_data[target_col] <= exit_price:
+                        buy_price = row_data[target_col]
+                        buy_price_list.append(buy_price)
+                        buy_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        exit_post = True
+                        profit = ((sell_price - buy_price)/sell_price) * 100
+                        profit_lose_percent_list.append(profit)
+                    elif row_index == day_afterhr.index[-1]:
+                        
+                        buy_price = row_data[target_col]
+                        buy_price_list.append(buy_price)
+                        buy_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        enter_post = False
+                        profit = ((sell_price - buy_price)/sell_price) * 100
+                        profit_lose_percent_list.append(profit)
+    return {"buy_price_list": buy_price_list,
+            "buy_day_list": buy_day_list,
+            "sell_price_list": sell_price_list,
+            "sell_day_list": sell_day_list,
+            "profit_lose_list": profit_lose_list,
+            "profit_lose_percent_list": profit_lose_percent_list
+            }          
+                   
 #%%
 def buy_regular_at_premarket_lowest(df, profit_percent=1, 
                                     percent_to_reduce_premarket_lowest=0,
