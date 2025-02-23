@@ -19,6 +19,7 @@ from utils import (cal_proba_current_close_is_lower_than_nextday_high,
                    cal_lowest_percent_target_is_below_base_market,
                    get_daily_price_and_time,
                    cal_proba_of_status,
+                   cal_proba_premarket_low_in_regular_hr
                    
                    )
 import plotly.express as px
@@ -861,4 +862,91 @@ stock_bars = stock_client.get_stock_bars(stock_bars_request)
 stock_bars.df.to_csv("IONQ_2024_9_1_to_2025_2_21.csv")
 
 
+#%%
+
+ionq_df = stock_bars.df.droplevel(0)#.index
+
+ionq_df.columns = [col.capitalize() for col in ionq_df.columns]
+
+#%%
+
+ionq_df.index
+#%%
+from pandas.core.indexes.multi import MultiIndex
+
+if isinstance(stock_bars.df.droplevel(0), MultiIndex):
+    print("MultiIndex")
+else:
+    print("Not MultiIndex")
+    
+    
+#%%
+
+[print(col.capitalize()) for col in stock_bars.df.columns]   
+
+#%%
+
+ionq_df_us_es = ionq_df#.index.tz_convert('US/Eastern')
+
+
+#%%
+
+ionq_df_us_es.index = ionq_df_us_es.index.tz_convert('US/Eastern')
+
+#%%
+ionq_df_us_es.index.hour
+
+
+#%%
+def convert_to_us_eastern(df):
+    """
+    Convert the index of the DataFrame from UTC to US/Eastern time zone.
+    
+    Parameters:
+    df (pd.DataFrame): DataFrame with DatetimeIndex in UTC.
+
+    Returns:
+    pd.DataFrame: DataFrame with DatetimeIndex in US/Eastern.
+    """
+    # Convert the index to the US/Eastern time zone
+    df.index = df.index.tz_convert('US/Eastern')
+    return df
+
+
+#%%
+def preprocess_data(df):
+    df.columns = [col.capitalize() for col in df.columns]
+    df = convert_to_us_eastern(df=df)
+    return df
+       
+       
+#%%
+
+ionq_preprocessed_df = preprocess_data(ionq_df)     
+
+#%%
+
+ionq_preprocessed_df.info()
+
+#%%
+
+res_ionq = buy_regular_at_premarket_lowest(ionq_preprocessed_df)
+
+#%%
+
+res_ionq["buy_day_list"]
+
+#%%
+
+cal_proba_low_preceds_high(ionq_preprocessed_df)
+
+#%%
+
+cal_proba_regular_lowest_in_after_hours(ionq_preprocessed_df)
+
+#%%
+
+cal_proba_premarket_low_in_regular_hr(ionq_preprocessed_df)
+# %%
+from constant import ALPACA_API_KEY, ALPACA_SECRET_KEY
 # %%

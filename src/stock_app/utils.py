@@ -244,7 +244,45 @@ def cal_proba_premarket_low_in_regular_hr(df, percent_to_reduce_premarket_lowest
     return {"probability": proba,
             "case_date": case_date
             }
+
+
+
+def cal_proba_premarket_high_in_regular_hr(df, 
+                                           percent_to_increase_premarket_highest=0,
+                                          target_col="Close"
+                                          ):
+    case_count = 0
+    all_count = 0
+    case_date = []
+    reg_df = get_market_type_data(df=df, market_type="regular")
+    unique_date = np.unique(df.index.date)
+    premarket_hr_df = get_market_type_data(df=df, market_type="premarket")
+    for item in unique_date:
+        curr_regular_df = reg_df[reg_df.index.date == item]
+        curr_premarket_df = premarket_hr_df[premarket_hr_df.index.date == item]
+        curr_regular_highmax = curr_regular_df[target_col].max()
+        curr_premarket_highmax = curr_premarket_df[target_col].max()
+        if percent_to_increase_premarket_highest > 0:
+            curr_premarket_highmax = (((100 + percent_to_increase_premarket_highest) / 100)
+                                    * curr_premarket_highmax
+                                    )
+        if curr_premarket_highmax <= curr_regular_highmax:
+            print(f"current premarket highest : {curr_premarket_highmax}")
+            print(f"current regular highest : {curr_regular_highmax}")
+            case_count += 1
+            all_count += 1
+            case_date.append(item)
+        else:
+            all_count += 1
+    if case_count > 0:
+        proba = (case_count / all_count) * 100
+    else:
+        proba = 0.0
+    return {"probability": proba,
+            "case_date": case_date
+            }
     
+        
 def calculate_proba_close_lower_than_nextday_high_conditional(df):
     """if current high, low and close are higher than previous than buy at close and 
         sell next day at profit
