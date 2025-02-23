@@ -180,9 +180,6 @@ def buy_afterhrs_at_regular_lowest(df, profit_percent=1,
             }          
                    
 
-
-
-
 def short_sell_afterhrs_at_regular_highest(df, profit_percent=1,
                                            percent_to_increase_regular_highest_price=0,
                                            target_col="Close"
@@ -324,7 +321,87 @@ def buy_regular_at_premarket_lowest(df, profit_percent=1,
             "profit_lose_percent_list": profit_lose_percent_list
             }          
                 
+def short_sell_regular_at_premarket_highest(df, profit_percent=1, 
+                                            percent_to_increase_premarket_highest=0,
+                                            target_col="Close"
+                                            ):
+    reg_df = get_market_type_data(df=df, market_type="regular")
+    unique_date = np.unique(df.index.date)
     
+    premarket_df = get_market_type_data(df=df, market_type="premarket")
+    buy_price_list = []
+    buy_day_list = []
+    sell_price_list = []
+    sell_day_list = []
+    profit_lose_list = []
+    profit_lose_percent_list = []
+    
+    for item in unique_date:
+        day_reguhr = reg_df[reg_df.index.date == item]
+        day_premarket = premarket_df[premarket_df.index.date == item]
+        day_premarket_highmax = day_premarket[target_col].max()
+        
+        if percent_to_increase_premarket_highest > 0:
+            day_premarket_highmax = ((100 + float(percent_to_increase_premarket_highest) / 100)
+                                    * day_premarket_highmax
+                                    )
+            
+        enter_post = False
+        buy_price = 0
+        exit_price = 0
+        exit_post = False
+        for row_index, row_data in day_reguhr.iterrows():
+            if not enter_post:
+                if row_data[target_col] >= day_premarket_highmax:
+                    # buy_price = row_data[target_col]
+                    # buy_price_list.append(buy_price)
+                    # buy_day_list.append(row_index)
+                    
+                    sell_price = row_data[target_col]
+                    sell_price_list.append(sell_price)
+                    sell_day_list.append(row_index)
+                    enter_post = True
+                    exit_price = ((100 - profit_percent)/100) * sell_price
+            elif enter_post:
+                if not exit_post:
+                    if row_data[target_col] <= exit_price:
+                        # sell_price = row_data[target_col]
+                        # sell_price_list.append(sell_price)
+                        # sell_day_list.append(row_index)
+                        # profit_lose = sell_price - buy_price
+                        # profit_lose_list.append(profit_lose)
+                        
+                        buy_price = row_data[target_col]
+                        buy_price_list.append(buy_price)
+                        buy_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        exit_post = True
+                        profit = ((sell_price - buy_price)/sell_price) * 100
+                        profit_lose_percent_list.append(profit)
+                    elif row_index == day_reguhr.index[-1]:
+                        # sell_price = row_data[target_col]
+                        # sell_price_list.append(sell_price)
+                        # sell_day_list.append(row_index)
+                        
+                        buy_price = row_data[target_col]
+                        buy_price_list.append(buy_price)
+                        buy_day_list.append(row_index)
+                        profit_lose = sell_price - buy_price
+                        profit_lose_list.append(profit_lose)
+                        enter_post = False
+                        profit = ((sell_price - buy_price)/sell_price) * 100
+                        profit_lose_percent_list.append(profit)
+    return {"buy_price_list": buy_price_list,
+            "buy_day_list": buy_day_list,
+            "sell_price_list": sell_price_list,
+            "sell_day_list": sell_day_list,
+            "profit_lose_list": profit_lose_list,
+            "profit_lose_percent_list": profit_lose_percent_list
+            }          
+
+
+   
 def cal_proba_premarket_low_in_regular_hr(df, percent_to_reduce_premarket_lowest=0,
                                           target_col="Close"
                                           ):
