@@ -467,7 +467,9 @@ prediction_config_layout = html.Div(dbc.Modal([dbc.ModalHeader([dbc.ModalTitle("
 
 
 strategy_types = {"Buy Premarket low in Regular": "pr_lw_reg",
-                  "Buy Regular low in After hours": "reg_lw_after"
+                  "Buy Regular low in After hours": "reg_lw_after",
+                  "Short sell Premarket High in Regular": "pr_hh_reg",
+                  "Short sell Regular High in After hours": "reg_hh_after"
                   }
 
 strategy_layout = html.Div(children=[html.H3("Strategy Analysis"),

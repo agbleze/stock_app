@@ -19,7 +19,11 @@ from utils import (cal_proba_current_close_is_lower_than_nextday_high,
                    cal_lowest_percent_target_is_below_base_market,
                    get_daily_price_and_time,
                    cal_proba_of_status,
-                   cal_proba_premarket_low_in_regular_hr
+                   cal_proba_premarket_low_in_regular_hr,
+                   cal_proba_premarket_high_in_regular_hr,
+                   cal_proba_regular_highest_in_after_hours,
+                   short_sell_afterhrs_at_regular_highest,
+                   short_sell_regular_at_premarket_highest
                    
                    )
 import plotly.express as px
@@ -837,12 +841,12 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.timeframe import TimeFrame
 from alpaca.data.requests import StockBarsRequest
 from constant import ALPACA_API_KEY, ALPACA_SECRET_KEY
-
+from datetime import datetime
 #%%
 stock_bars_request = StockBarsRequest(symbol_or_symbols="IONQ",
                                        timeframe=TimeFrame.Minute,
-                                       start=datetime(2024, 9, 1),
-                                       end=datetime(2025, 2, 21)
+                                       start=datetime(2021, 10, 1),
+                                       end=datetime(2025, 2, 23)
                                        )
 
 stock_client = StockHistoricalDataClient(api_key=ALPACA_API_KEY,
@@ -857,9 +861,13 @@ stock_client = StockHistoricalDataClient(api_key=ALPACA_API_KEY,
 stock_bars = stock_client.get_stock_bars(stock_bars_request)
 
 
+
 #%%
 
-stock_bars.df.to_csv("IONQ_2024_9_1_to_2025_2_21.csv")
+stock_bars.df
+#%%
+
+stock_bars.df.to_csv("IONQ_2021_10_1_to_2025_2_23.csv")
 
 
 #%%
@@ -870,31 +878,31 @@ ionq_df.columns = [col.capitalize() for col in ionq_df.columns]
 
 #%%
 
-ionq_df.index
+#ionq_df.index
 #%%
-from pandas.core.indexes.multi import MultiIndex
+# from pandas.core.indexes.multi import MultiIndex
 
-if isinstance(stock_bars.df.droplevel(0), MultiIndex):
-    print("MultiIndex")
-else:
-    print("Not MultiIndex")
+# if isinstance(stock_bars.df.droplevel(0), MultiIndex):
+#     print("MultiIndex")
+# else:
+#     print("Not MultiIndex")
     
     
 #%%
 
-[print(col.capitalize()) for col in stock_bars.df.columns]   
+#[print(col.capitalize()) for col in stock_bars.df.columns]   
 
 #%%
 
-ionq_df_us_es = ionq_df#.index.tz_convert('US/Eastern')
+#ionq_df_us_es = ionq_df#.index.tz_convert('US/Eastern')
 
 
 #%%
 
-ionq_df_us_es.index = ionq_df_us_es.index.tz_convert('US/Eastern')
+#ionq_df_us_es.index = ionq_df_us_es.index.tz_convert('US/Eastern')
 
 #%%
-ionq_df_us_es.index.hour
+#ionq_df_us_es.index.hour
 
 
 #%%
@@ -934,11 +942,25 @@ res_ionq = buy_regular_at_premarket_lowest(ionq_preprocessed_df)
 
 #%%
 
-res_ionq["buy_day_list"]
+res_ionq.keys() #["buy_day_list"]
 
 #%%
 
-cal_proba_low_preceds_high(ionq_preprocessed_df)
+ionq_low_prec_hh_proba = cal_proba_low_preceds_high(ionq_preprocessed_df)
+
+
+#%%
+ionq_low_prec_hh_proba["regular_probability"]#.keys()
+
+
+#%%
+
+ionq_premkt_lw_in_reg_proba = cal_proba_premarket_low_in_regular_hr(ionq_preprocessed_df)
+
+#%%
+
+ionq_premkt_lw_in_reg_proba["probability"] #.keys()
+
 
 #%%
 
@@ -950,3 +972,6 @@ cal_proba_premarket_low_in_regular_hr(ionq_preprocessed_df)
 # %%
 from constant import ALPACA_API_KEY, ALPACA_SECRET_KEY
 # %%
+from utils import cal_proba_premarket_high_in_regular_hr
+# %%
+import pandas as pd
