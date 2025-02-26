@@ -1009,6 +1009,9 @@ def create_daily_price_chart(daily_stock_ticker, only_last_day, daily_price_butt
                         dbc.Col(regular_comp)
                         ]
                         )
+        
+        
+# Add short selling analysis
 
 @app.callback(Output(component_id="id_sidebar_offcanvas",component_property="is_open"),
               Input(component_id="id_brand_holder", component_property="n_clicks"),
