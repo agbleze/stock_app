@@ -1011,7 +1011,177 @@ def create_daily_price_chart(daily_stock_ticker, only_last_day, daily_price_butt
                         )
         
         
-# Add short selling analysis
+# Add short selling analysis  ############## DEBUG
+
+@app.callback(Output(component_id="id_strategy_backtest_results", component_property="children"),
+              Output(component_id="id_strategy_probability_occurrence", component_property="children"),
+              Output(component_id="id_strategy_trigger_plots", component_property="children"),
+              Input(component_id="id_strategy_stock_ticker", component_property="value"),
+              Input(component_id="id_strategy_type", component_property="value"),
+              Input(component_id="id_strategy_target", component_property="value"),
+              Input(component_id="id_strategy_exclusion", component_property="value"),
+              Input(component_id="id_strategy_date", component_property="start_date"),
+              Input(component_id="id_strategy_date", component_property="end_date"),
+              Input(component_id="id_backtest", component_property="n_clicks")
+              
+              ) 
+def get_short_sell_backtest_strategy_results(stock_ticker, strategy_type, strategy_target,
+                                  exclude_last_date, start_date, end_date, backtest_click
+                                  ):
+    if backtest_click:
+        stock_data = yf.Ticker(stock_ticker)
+
+        stock_data_prepost =stock_data.history(start=start_date, end=end_date,
+                                                prepost=True,
+                                                interval='1m', 
+                                                period='8d',
+                                                )
+        if exclude_last_date:
+            last_date = stock_data_prepost.index.date[-1]
+            stock_data_prepost = stock_data_prepost[stock_data_prepost.index.date != last_date]
+        
+        if strategy_type == "reg_lw_after":   
+            proba_res = cal_proba_regular_lowest_in_after_hours(stock_data_prepost)
+            strategy_res = buy_afterhrs_at_regular_lowest(stock_data_prepost)
+        elif strategy_type == "pr_lw_reg":
+            strategy_res = buy_regular_at_premarket_lowest(stock_data_prepost,
+                                                                profit_percent=strategy_target
+                                                                )
+            proba_res = cal_proba_premarket_low_in_regular_hr(stock_data_prepost)
+            
+        proba = proba_res["probability"]
+        
+        proba_card = output_card(card_label=proba, id="id_proba",
+                                 icon="bi bi-percent"
+                                 )
+        proba_card_tooltip = html.Div([proba_card, 
+                                        dbc.Tooltip("Probability", 
+                                                    target="id_proba"
+                                                    )
+                                        ]
+                                        )
+        
+
+        profit_lost_percent = strategy_res["profit_lose_percent_list"]
+        buy_price = strategy_res['buy_price_list']
+        sell_price = strategy_res['sell_price_list']
+        buy_day = strategy_res['buy_day_list']
+        sell_day = strategy_res['sell_day_list']
+        
+        profit_loss_title = dbc.Row(html.H4("Profit / Loss (%)"))
+        if profit_lost_percent:
+            profit_loss_children = [dbc.Row(dbc.Badge(pl, color="danger")) 
+                                    if pl < 0 else dbc.Row(dbc.Badge(pl, color="success"))
+                                    for pl in profit_lost_percent
+                                    ]
+            
+        else:
+            profit_loss_children= [dbc.Row(dbc.Badge("No profit nor loss"))]
+        profit_loss_col_children = [profit_loss_title]
+        for item in profit_loss_children:
+            profit_loss_col_children.append(item)
+            profit_loss_col_children.append(html.Br())
+        profit_loss_col = dbc.Col(children=profit_loss_col_children)
+            
+        buy_date_title = dbc.Row(html.H4("Buy Date"))
+        if buy_day:
+            buy_date_children = [dbc.Row(dbc.Badge(dt)) for dt in buy_day]
+        else:
+            buy_date_children = [dbc.Row(dbc.Badge("No trigger"))]
+        
+        buy_date_col_children = [buy_date_title]
+        for item in buy_date_children:
+            buy_date_col_children.append(item)
+            buy_date_col_children.append(html.Br())
+        buy_date_col = dbc.Col(children=buy_date_col_children)
+        
+        buy_price_title = dbc.Row(html.H4("Buy Price"))
+        if buy_price:
+            buy_price_children = [dbc.Row(dbc.Badge(price)) for price in buy_price]
+        else:
+            buy_price_children = [dbc.Row(dbc.Badge("No trigger"))]
+        
+        buy_price_col_children = [buy_price_title]
+        
+       
+        for item in buy_price_children:
+            buy_price_col_children.append(item)
+            buy_price_col_children.append(html.Br())
+        buy_price_col = dbc.Col(children=buy_price_col_children)
+            
+        sell_date_title = dbc.Row(html.H4("Sell Date"))
+        if sell_day:
+            sell_date_children = [dbc.Row(dbc.Badge(dt)) for dt in sell_day]
+        else:
+            sell_date_children = [dbc.Row(dbc.Badge("No trigger"))]
+        sell_date_col_children = [sell_date_title]
+        for item in sell_date_children:
+            sell_date_col_children.append(item)
+            sell_date_col_children.append(html.Br())
+        sell_date_col = dbc.Col(children=sell_date_col_children)
+        
+        sell_price_title = dbc.Row(html.H4("Sell Price"))
+        if sell_price:
+            sell_price_children = [dbc.Row(dbc.Badge(price)) for price in sell_price]
+        else:
+            sell_price_children = [dbc.Row(dbc.Badge("No trigger"))]
+        sell_price_col_children = [sell_price_title]
+        for item in sell_price_children:
+            sell_price_col_children.append(item)
+            sell_price_col_children.append(html.Br())
+        sell_price_col = dbc.Col(children=sell_price_col_children)
+        
+        strategy_components = dbc.Row(children=[dbc.Col(buy_date_col),
+                                                dbc.Col(sell_date_col),
+                                                dbc.Col(buy_price_col),
+                                                dbc.Col(sell_price_col),
+                                                dbc.Col(profit_loss_col)
+                                                ]
+                                      )
+        
+        trigger_dates = [buy_dy.date() for buy_dy in buy_day]
+        if trigger_dates:
+            print(f"trigger_dates: {trigger_dates}")
+            trigger_plot_cols = []
+            for trigger_date, entry_point, exit_point in zip(trigger_dates, buy_price, sell_price):
+                #print(f"trigger date: {trigger_date}")
+                day_stock_data = stock_data_prepost[stock_data_prepost.index.date == trigger_date]
+                #print(f"day_stock_data: ------  {day_stock_data}")
+                title = f"{stock_ticker} Long position: {trigger_date}"
+                day_trigger_plot = create_trigger_plots(df=day_stock_data, 
+                                                        entry_point=entry_point,
+                                                        exit_point=exit_point,
+                                                        title=title
+                                                        )
+                trigger_graph = dcc.Graph(figure=day_trigger_plot)
+                trigger_graph_col = dbc.Col(trigger_graph, width=6)
+                trigger_plot_cols.append(trigger_graph_col)
+        else:
+            trigger_plot_cols = []
+            
+            
+        return strategy_components, proba_card, trigger_plot_cols
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+########################
 
 @app.callback(Output(component_id="id_sidebar_offcanvas",component_property="is_open"),
               Input(component_id="id_brand_holder", component_property="n_clicks"),
