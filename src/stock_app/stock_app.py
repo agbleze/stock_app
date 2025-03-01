@@ -315,7 +315,7 @@ appside_layout = html.Div(
                             ]
                         )
 
-def output_card(id: str = None, card_label: str =None,
+def output_card(id: str, card_label: str,
                 style={"backgroundColor": 'yellow'},
                 icon: str ='bi bi-cash-coin', card_size: int = 4
                 ):

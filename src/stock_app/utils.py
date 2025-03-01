@@ -12,9 +12,13 @@ import json
 import pandas_market_calendars as mcal
 import math
 import plotly.express as px
+from typing import Literal
 
 
-def get_market_type_data(df, market_type):
+MarketTypeAnnotation = Literal["premarket", "regular", "afterhrs"]
+TargetColTypeHint = Literal["Close", "Open", "High", "Low"]
+
+def get_market_type_data(df: pd.DataFrame, market_type: MarketTypeAnnotation):
     if market_type not in ["premarket", "regular", "afterhrs"]:
         raise ValueError("Invalid market type. Use 'premarket', 'afterhrs', or'regular'.")
     market_open = pd.Timestamp("09:30", tz="US/Eastern").time()
@@ -31,9 +35,9 @@ def get_market_type_data(df, market_type):
         
     return df
 
-def cal_proba_regular_lowest_in_after_hours(df, 
-                                            percent_to_reduce_regular_lowest_price=0,
-                                            target_col="Close"
+def cal_proba_regular_lowest_in_after_hours(df: pd.DataFrame, 
+                                            percent_to_reduce_regular_lowest_price: float=0.0,
+                                            target_col: TargetColTypeHint="Close"
                                             ):
     case_count = 0
     all_count = 0
@@ -68,9 +72,9 @@ def cal_proba_regular_lowest_in_after_hours(df,
     
 
 
-def cal_proba_regular_highest_in_after_hours(df, 
-                                            percent_to_increase_regular_highest_price=0,
-                                            target_col="Close"
+def cal_proba_regular_highest_in_after_hours(df: pd.DataFrame, 
+                                            percent_to_increase_regular_highest_price: int=0,
+                                            target_col: TargetColTypeHint="Close"
                                             ):
     case_count = 0
     all_count = 0
@@ -106,9 +110,9 @@ def cal_proba_regular_highest_in_after_hours(df,
 #%% TODO: Add plots with horizontal lines  showing the lowest price
 # in regular hours and a vertical line showing when it went long 
 # in after hours and another vertical for sell time
-def buy_afterhrs_at_regular_lowest(df, profit_percent=1,
-                                   percent_to_reduce_regular_lowest_price=0,
-                                   target_col="Close"
+def buy_afterhrs_at_regular_lowest(df: pd.DataFrame, profit_percent: float=1.0,
+                                   percent_to_reduce_regular_lowest_price: int=0,
+                                   target_col: TargetColTypeHint="Close"
                                    ):
     """Estimate the scenario of buying in the after hours at the 
 
@@ -137,8 +141,8 @@ def buy_afterhrs_at_regular_lowest(df, profit_percent=1,
                                     * day_reguhr_Lowmin
                                     )
         enter_post = False
-        buy_price = 0
-        exit_price = 0
+        buy_price = 0.0
+        exit_price = 0.0
         exit_post = False
         for row_index, row_data in day_afterhr.iterrows():
             if not enter_post:
@@ -180,9 +184,9 @@ def buy_afterhrs_at_regular_lowest(df, profit_percent=1,
             }          
                    
 
-def short_sell_afterhrs_at_regular_highest(df, profit_percent=1,
-                                           percent_to_increase_regular_highest_price=0,
-                                           target_col="Close"
+def short_sell_afterhrs_at_regular_highest(df: pd.DataFrame, profit_percent: float=1.0,
+                                           percent_to_increase_regular_highest_price: float=0,
+                                           target_col: TargetColTypeHint="Close"
                                           ):
     """Estimate the scenario of short selling in the after hours at the highest regular price
 
@@ -256,9 +260,9 @@ def short_sell_afterhrs_at_regular_highest(df, profit_percent=1,
             }          
                    
 #%%
-def buy_regular_at_premarket_lowest(df, profit_percent=1, 
-                                    percent_to_reduce_premarket_lowest=0,
-                                    target_col="Close"
+def buy_regular_at_premarket_lowest(df: pd.DataFrame, profit_percent: float=1.0, 
+                                    percent_to_reduce_premarket_lowest: float=0.0,
+                                    target_col: TargetColTypeHint="Close"
                                     ):
     reg_df = get_market_type_data(df=df, market_type="regular")
     unique_date = np.unique(df.index.date)
@@ -282,8 +286,8 @@ def buy_regular_at_premarket_lowest(df, profit_percent=1,
                                     )
             
         enter_post = False
-        buy_price = 0
-        exit_price = 0
+        buy_price = 0.0
+        exit_price = 0.0
         exit_post = False
         for row_index, row_data in day_reguhr.iterrows():
             if not enter_post:
@@ -321,9 +325,9 @@ def buy_regular_at_premarket_lowest(df, profit_percent=1,
             "profit_lose_percent_list": profit_lose_percent_list
             }          
                 
-def short_sell_regular_at_premarket_highest(df, profit_percent=1, 
-                                            percent_to_increase_premarket_highest=0,
-                                            target_col="Close"
+def short_sell_regular_at_premarket_highest(df: pd.DataFrame, profit_percent: float=1, 
+                                            percent_to_increase_premarket_highest: float=0,
+                                            target_col: TargetColTypeHint="Close"
                                             ):
     reg_df = get_market_type_data(df=df, market_type="regular")
     unique_date = np.unique(df.index.date)
@@ -402,8 +406,8 @@ def short_sell_regular_at_premarket_highest(df, profit_percent=1,
 
 
    
-def cal_proba_premarket_low_in_regular_hr(df, percent_to_reduce_premarket_lowest=0,
-                                          target_col="Close"
+def cal_proba_premarket_low_in_regular_hr(df: pd.DataFrame, percent_to_reduce_premarket_lowest: float=0.0,
+                                          target_col: TargetColTypeHint="Close"
                                           ):
     case_count = 0
     all_count = 0
@@ -438,9 +442,9 @@ def cal_proba_premarket_low_in_regular_hr(df, percent_to_reduce_premarket_lowest
 
 
 
-def cal_proba_premarket_high_in_regular_hr(df, 
-                                           percent_to_increase_premarket_highest=0,
-                                          target_col="Close"
+def cal_proba_premarket_high_in_regular_hr(df: pd.DataFrame, 
+                                           percent_to_increase_premarket_highest: float=0.0,
+                                          target_col: TargetColTypeHint="Close"
                                           ):
     case_count = 0
     all_count = 0
@@ -820,7 +824,7 @@ def compounded_amount(principal, daily_rate, num_trades):
     
     return accumulated_amount
 
-def create_new_lows(df, target_col="Close"):
+def create_new_lows(df: pd.DataFrame, target_col: TargetColTypeHint="Close"):
     new_minimums = []
     if target_col not in df.columns:
         raise ValueError(f"Target column '{target_col}' not found in the DataFrame")
@@ -833,7 +837,7 @@ def create_new_lows(df, target_col="Close"):
     df['new_minimum'] = new_minimums
     return df
 
-def create_new_highs(df, target_col="Close"):
+def create_new_highs(df: pd.DataFrame, target_col: TargetColTypeHint="Close"):
     new_maximums = []
     if target_col not in df.columns:
         raise ValueError(f"Target column '{target_col}' not found in the DataFrame")
@@ -872,7 +876,7 @@ def download_minute_interval_data(ticker, start_date=None, end_date=None,
                             )
     return data
 
-def get_time_of_event_in_market_type(df, event="Highest", market_type="regular"):
+def get_time_of_event_in_market_type(df, event=Literal["Highest", "Lowest"], market_type="regular"):
     time_of_event_price = []
     df = get_market_type_data(df=df, market_type=market_type) 
     unique_date = np.unique(df.index.date)
@@ -889,7 +893,9 @@ def get_time_of_event_in_market_type(df, event="Highest", market_type="regular")
         time_of_event_price.append(event_time)
     return time_of_event_price
 
-def get_market_type_stats(df, market_type="premarket"):
+def get_market_type_stats(df, 
+                          market_type: MarketTypeAnnotation="premarket"
+                          ):
     res= {}
     df = get_market_type_data(df=df, market_type=market_type)
     unique_date = np.unique(df.index.date)
@@ -915,7 +921,9 @@ def get_market_type_stats(df, market_type="premarket"):
                     
     return res
 
-def get_current_stats_for_market(ticker=None, df=None, market_type = "premarket"):
+def get_current_stats_for_market(ticker=None, df=None, 
+                                 market_type: MarketTypeAnnotation="premarket"
+                                 ):
     res = {}
     if not ticker and not df:
         raise ValueError("Both ticker and df are not given. Please provide at least one of them"
@@ -943,7 +951,7 @@ def get_current_stats_for_market(ticker=None, df=None, market_type = "premarket"
                            }
     return res
 
-def cal_proba_low_preceds_high(df, market_type="regular"):
+def cal_proba_low_preceds_high(df, market_type: MarketTypeAnnotation="regular"):
     case_counts = 0
     events_counts = 0
     df = get_market_type_data(df=df, market_type=market_type)
@@ -963,7 +971,7 @@ def cal_proba_low_preceds_high(df, market_type="regular"):
             events_counts += 1
             
     if case_counts == 0:
-        proba = 0
+        proba = 0.0
     else:
         proba = (case_counts / events_counts) * 100
         
@@ -971,7 +979,9 @@ def cal_proba_low_preceds_high(df, market_type="regular"):
             
 # get n highest prices and their time
 
-def get_price_and_time(df, market_type: str, num: int, direction: str):
+def get_price_and_time(df, market_type: MarketTypeAnnotation, 
+                       num: int, direction: str
+                       ):
     if direction not in ["highest", "lowest"]:
         raise ValueError("Invalid direction. Use 'highest' or 'lowest'.")
     
@@ -988,7 +998,8 @@ def get_price_and_time(df, market_type: str, num: int, direction: str):
     price_time_list = [item for item in price_time] 
     return price_time_list
 
-def get_daily_price_and_time(df, market_type, num, direction):
+def get_daily_price_and_time(df: pd.DataFrame, market_type: MarketTypeAnnotation, 
+                             num: int, direction):
     unique_date = np.unique(df.index.date)
     daily_price_and_time = {}
     for day in unique_date:
