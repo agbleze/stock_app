@@ -12,11 +12,18 @@ import json
 import pandas_market_calendars as mcal
 import math
 import plotly.express as px
-from typing import Literal
+from utils_typing import MarketTypeAnnotation, TargetColTypeHint, ProbaReturnType
 
 
-MarketTypeAnnotation = Literal["premarket", "regular", "afterhrs"]
-TargetColTypeHint = Literal["Close", "Open", "High", "Low"]
+from typing import Literal, Annotated, TypedDict, List
+# from datetime import datetime, date
+
+# MarketTypeAnnotation = Literal["premarket", "regular", "afterhrs"]
+# TargetColTypeHint = Literal["Close", "Open", "High", "Low"]
+
+# class ProbaReturnType(TypedDict):
+#     probability: float
+#     case_date: List[date]
 
 def get_market_type_data(df: pd.DataFrame, market_type: MarketTypeAnnotation):
     if market_type not in ["premarket", "regular", "afterhrs"]:
@@ -408,7 +415,7 @@ def short_sell_regular_at_premarket_highest(df: pd.DataFrame, profit_percent: fl
    
 def cal_proba_premarket_low_in_regular_hr(df: pd.DataFrame, percent_to_reduce_premarket_lowest: float=0.0,
                                           target_col: TargetColTypeHint="Close"
-                                          ):
+                                          ) -> ProbaReturnType:
     case_count = 0
     all_count = 0
     case_date = []
@@ -445,7 +452,7 @@ def cal_proba_premarket_low_in_regular_hr(df: pd.DataFrame, percent_to_reduce_pr
 def cal_proba_premarket_high_in_regular_hr(df: pd.DataFrame, 
                                            percent_to_increase_premarket_highest: float=0.0,
                                           target_col: TargetColTypeHint="Close"
-                                          ):
+                                          ) -> ProbaReturnType:
     case_count = 0
     all_count = 0
     case_date = []

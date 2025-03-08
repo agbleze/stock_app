@@ -10,7 +10,7 @@ stock = yf.Ticker(ticker)
 
 
 #%%
-save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/17_02_2025_to_21_02_2025"
+save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/21_02_2025_to_21_02_2025"
 os.makedirs(save_dir, exist_ok=True)
 #%% Download data including extended hours
 # hist = stock.history(start="2025-01-11", #period='1d',
@@ -87,34 +87,112 @@ short_sell_tickers = ["SARO", "BBAI", "QUAD", "NVRI", "DJT", "COIN",
 # AMSSY needs debugging for premarket
 # no data -- CGEO, NSKOG, ELMRA
 #preselected_shortsell = ["ASTS"]
-for ticker in tickers:
+for ticker in short_sell_tickers:
     stock = yf.Ticker(ticker)
     # hist = stock.history(start="2025-01-27", period='8d',
     #                      interval='1m', prepost=True
     #                      )
     # hist.to_csv(f"{save_dir}/{ticker}_2025_01_27_to_2025_01_31.csv")
     #start_date = ""
-    start="2025-02-17"
-    end="2025-02-21"
+    #start="2025-02-24"
+    #end="2025-03-01"
+    start="2025-02-21"
+    end="2025-02-22"
     hist = stock.history(start=start, 
                          end=end,
                         prepost=True,
                         interval='1m', 
                         period='8d',
                         )
-    hist.to_csv(f"{save_dir}/{ticker}_2025_02_17_to_2025_02_21.csv")#2025_02_03_to_2025_02_07.csv")
+    hist.to_csv(f"{save_dir}/{ticker}_2025_02_21_to_2025_02_21.csv")#2025_02_03_to_2025_02_07.csv")
     #print(hist.index[0])
     #print(hist.index[-1])
 
 
 # %%
+start="2025-02-21"
+end="2025-02-22"
 import yfinance as yf
 stock = yf.Ticker("IONQ")
-stock.history(#start=start, 
-                         #end=end,
-                        prepost=True,
-                        interval='1m', 
-                        period='8d',
-                        )
+df = stock.history(start=start, 
+                    end=end,
+                    prepost=True,
+                    interval='1m', 
+                    period='8d',
+                    )
 
+# %%
+df.index[-1]
+# %%
+df.index[0]
+# %%
+import pandas as pd
+
+#%%
+data_path = "/home/lin/codebase/stock_app/src/stock_app/IONQ_2021_10_1_to_2025_2_23.csv"
+
+df = pd.read_csv(data_path)
+
+
+#%%
+
+df.head()
+
+
+#%%
+def convert_to_us_eastern(df):
+    """
+    Convert the index of the DataFrame from UTC to US/Eastern time zone.
+    
+    Parameters:
+    df (pd.DataFrame): DataFrame with DatetimeIndex in UTC.
+
+    Returns:
+    pd.DataFrame: DataFrame with DatetimeIndex in US/Eastern.
+    """
+    # Convert the index to the US/Eastern time zone
+    df.index = df.index.tz_convert('US/Eastern')
+    return df
+
+
+from pandas.core.indexes.multi import MultiIndex
+
+
+def preprocess_data(df):
+    if isinstance(df, MultiIndex):
+        df = df.droplevel(0)
+    df.columns = [col.capitalize() for col in df.columns]
+    df = convert_to_us_eastern(df=df)
+    return df
+       
+#%%
+from datetime import datetime
+df['Timestamp'] = pd.to_datetime(df['Timestamp'])#.columns#["timestamp"]
+
+#%%
+
+df.index = df['Timestamp']
+
+
+#%%
+
+ionq_df = preprocess_data(df)
+
+#%%
+import numpy as np
+import plotly.express as px
+import os
+unique_date = np.unique(ionq_df.index.date)
+
+
+#%%
+savedir = "/home/lin/codebase/stock_app/src/stock_app/ionq_daily_plots"
+for day in unique_date:
+    df = ionq_df[ionq_df.index.date==day]
+    fig = px.line(data_frame=df, x=df.index, 
+                y="Close", #title=header, 
+                template="plotly_dark"
+                )
+    save_path = os.path.join(savedir, f"ionq_{day}.png")
+    fig.write_image(save_path)
 # %%

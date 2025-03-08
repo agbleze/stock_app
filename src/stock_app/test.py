@@ -921,13 +921,12 @@ def convert_to_us_eastern(df):
     return df
 
 
-#%%
 def preprocess_data(df):
     df.columns = [col.capitalize() for col in df.columns]
     df = convert_to_us_eastern(df=df)
     return df
        
-       
+      
 #%%
 
 ionq_preprocessed_df = preprocess_data(ionq_df)     
@@ -974,4 +973,13 @@ from constant import ALPACA_API_KEY, ALPACA_SECRET_KEY
 # %%
 from utils import cal_proba_premarket_high_in_regular_hr
 # %%
-import pandas as pd
+from enum import Enum, auto
+
+
+def ExamEnum(Enum):
+    IN_PROGRESS = auto()
+    PASS = auto()
+    FAIL = auto()
+# %%
+ExamEnum()
+# %%

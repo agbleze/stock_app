@@ -147,11 +147,15 @@ and sell for profit next day -- Tools not ready
 
 # what happens when a company beats its guidance 
 
-
 # TODO: performance calculator similar to that on SAP wensite
 # https://www.sap.com/investors/en/stock.html
 
 
 
-### Use statistics in the previous regular session and 
+### Use statistics in the previous regular session and
+
 # current premarket session to determine trade
+
+
+# 
+# Include chart similarity search
