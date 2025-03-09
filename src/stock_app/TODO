@@ -159,3 +159,7 @@ and sell for profit next day -- Tools not ready
 
 # 
 # Include chart similarity search
+# WHEN a date is selected, create graph and use graph as query image to return most similar chart
+
+
+# then create a model to read the date on the chart
