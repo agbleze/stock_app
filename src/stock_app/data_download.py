@@ -10,7 +10,7 @@ stock = yf.Ticker(ticker)
 
 
 #%%
-save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/21_02_2025_to_21_02_2025"
+save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/03_03_2025_to_07_03_2025"
 os.makedirs(save_dir, exist_ok=True)
 #%% Download data including extended hours
 # hist = stock.history(start="2025-01-11", #period='1d',
@@ -87,7 +87,7 @@ short_sell_tickers = ["SARO", "BBAI", "QUAD", "NVRI", "DJT", "COIN",
 # AMSSY needs debugging for premarket
 # no data -- CGEO, NSKOG, ELMRA
 #preselected_shortsell = ["ASTS"]
-for ticker in short_sell_tickers:
+for ticker in tickers:
     stock = yf.Ticker(ticker)
     # hist = stock.history(start="2025-01-27", period='8d',
     #                      interval='1m', prepost=True
@@ -96,15 +96,15 @@ for ticker in short_sell_tickers:
     #start_date = ""
     #start="2025-02-24"
     #end="2025-03-01"
-    start="2025-02-21"
-    end="2025-02-22"
+    start="2025-03-03"
+    end="2025-03-08"
     hist = stock.history(start=start, 
                          end=end,
                         prepost=True,
                         interval='1m', 
                         period='8d',
                         )
-    hist.to_csv(f"{save_dir}/{ticker}_2025_02_21_to_2025_02_21.csv")#2025_02_03_to_2025_02_07.csv")
+    hist.to_csv(f"{save_dir}/{ticker}_2025_03_03_to_2025_03_07.csv")#2025_02_03_to_2025_02_07.csv")
     #print(hist.index[0])
     #print(hist.index[-1])
 
