@@ -10,7 +10,7 @@ stock = yf.Ticker(ticker)
 
 
 #%%
-save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/10_03_2025_to_14_03_2025"
+save_dir = "/home/lin/codebase/stock_app/src/stock_app/minute_data/17_03_2025_to_22_03_2025"
 os.makedirs(save_dir, exist_ok=True)
 #%% Download data including extended hours
 # hist = stock.history(start="2025-01-11", #period='1d',
@@ -96,15 +96,15 @@ for ticker in tickers:
     #start_date = ""
     #start="2025-02-24"
     #end="2025-03-01"
-    start="2025-03-10"
-    end="2025-03-15"
+    start="2025-03-17"
+    end="2025-03-22"
     hist = stock.history(start=start, 
                          end=end,
                         prepost=True,
                         interval='1m', 
                         period='8d',
                         )
-    hist.to_csv(f"{save_dir}/{ticker}_2025_03_10_to_2025_03_14.csv")#2025_02_03_to_2025_02_07.csv")
+    hist.to_csv(f"{save_dir}/{ticker}_2025_03_17_to_2025_03_21.csv")#2025_02_03_to_2025_02_07.csv")
     #print(hist.index[0])
     #print(hist.index[-1])
 

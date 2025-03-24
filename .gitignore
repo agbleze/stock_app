@@ -140,3 +140,9 @@ dmypy.json
 
 # MacOS
 .DS_Store
+
+
+model_store/
+minute_data/*
+*.csv
+ionq_daily_plots
