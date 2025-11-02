@@ -1065,3 +1065,20 @@ def preprocess_data(df):
     df = convert_to_us_eastern(df=df)
     return df
          
+def normalize_stock_data(data: pd.DataFrame):
+    """
+    Normalize OHLCV data in a window so that
+    - Prices are scaled to [0,1] range within the window
+    - Volume is scaled relative to max volume in the window
+    """
+    df = data.copy()
+
+    # Scale prices relative to min/max in the window
+    price_min = df[['Open','High','Low','Close']].min().min()
+    price_max = df[['Open','High','Low','Close']].max().max()
+    df[['Open','High','Low','Close']] = (df[['Open','High','Low','Close']] - price_min) / (price_max - price_min)
+
+    # Scale volume
+    df['Volume'] = df['Volume'] / df['Volume'].max()
+
+    return df
