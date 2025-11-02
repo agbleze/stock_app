@@ -13,7 +13,7 @@ import pandas_market_calendars as mcal
 import math
 import plotly.express as px
 from utils_typing import MarketTypeAnnotation, TargetColTypeHint, ProbaReturnType
-
+from pandas.core.indexes.multi import MultiIndex
 
 from typing import Literal, Annotated, TypedDict, List
 # from datetime import datetime, date
@@ -1043,5 +1043,25 @@ def O_H_LC(df, trading_dates):
     # check if timestamp for high is before L and L and Close are same time
 
 
+def convert_to_us_eastern(df):
+    """
+    Convert the index of the DataFrame from UTC to US/Eastern time zone.
+    
+    Parameters:
+    df (pd.DataFrame): DataFrame with DatetimeIndex in UTC.
+
+    Returns:
+    pd.DataFrame: DataFrame with DatetimeIndex in US/Eastern.
+    """
+    # Convert the index to the US/Eastern time zone
+    df.index = df.index.tz_convert('US/Eastern')
+    return df
 
 
+def preprocess_data(df):
+    if isinstance(df.columns, MultiIndex):
+        df.columns = df.columns.droplevel(1)
+    df.columns = [col.capitalize() for col in df.columns]
+    df = convert_to_us_eastern(df=df)
+    return df
+         
