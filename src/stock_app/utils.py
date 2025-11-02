@@ -13,7 +13,7 @@ import pandas_market_calendars as mcal
 import math
 import plotly.express as px
 from utils_typing import MarketTypeAnnotation, TargetColTypeHint, ProbaReturnType
-from pandas.core.indexes.multi import MultiIndex
+import mplfinance as mpf
 
 from typing import Literal, Annotated, TypedDict, List
 # from datetime import datetime, date
@@ -1082,3 +1082,45 @@ def normalize_stock_data(data: pd.DataFrame):
     df['Volume'] = df['Volume'] / df['Volume'].max()
 
     return df
+
+
+def plot_mpf_graph(df, style, type="candle", mav=None):
+    if mav:
+        fig, axlist = mpf.plot(df, type=type,
+                                volume=True, 
+                                style=style,
+                                returnfig=True, axisoff=True,
+                                mav=mav,
+                                figsize=(4,4),
+                                )
+    else:
+        fig, axlist = mpf.plot(df, type=type, 
+                                volume=True, style=style,
+                                returnfig=True, axisoff=True,
+                                figsize=(4,4),
+                                )
+    return fig
+
+def get_plain_sytle():
+    return mpf.make_mpf_style(base_mpf_style='charles',
+                                rc={'axes.edgecolor': 'white',   # hide axis lines
+                                    'axes.facecolor': 'white',   # background
+                                    'figure.facecolor': 'white', # background
+                                    'xtick.color': 'white',      # hide x ticks
+                                    'ytick.color': 'white',      # hide y ticks
+                                    'grid.color': 'white',        # hide grid lines
+                                    }
+                                )
+    
+plain_style = get_plain_sytle()
+
+
+def plot_plain_graph(df, type="candle",
+                     mav=None,
+                    style=plain_style,
+                    save_path='candlestick_plain.png'
+                    ):
+    fig = plot_mpf_graph(df, style=style, mav=mav, type=type)
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    fig.savefig(save_path, dpi=500, bbox_inches='tight', pad_inches=0)
+    return fig
