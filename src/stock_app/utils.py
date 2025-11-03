@@ -1077,8 +1077,6 @@ def normalize_stock_data(data: pd.DataFrame):
     price_min = df[['Open','High','Low','Close']].min().min()
     price_max = df[['Open','High','Low','Close']].max().max()
     df[['Open','High','Low','Close']] = (df[['Open','High','Low','Close']] - price_min) / (price_max - price_min)
-
-    # Scale volume
     df['Volume'] = df['Volume'] / df['Volume'].max()
 
     return df
@@ -1101,7 +1099,7 @@ def plot_mpf_graph(df, style, type="candle", mav=None):
                                 )
     return fig
 
-def get_plain_sytle():
+def get_plain_sytle() -> mpf.Style:
     return mpf.make_mpf_style(base_mpf_style='charles',
                                 rc={'axes.edgecolor': 'white',   # hide axis lines
                                     'axes.facecolor': 'white',   # background
@@ -1112,12 +1110,12 @@ def get_plain_sytle():
                                     }
                                 )
     
-plain_style = get_plain_sytle()
+_plain_style = get_plain_sytle()
 
 
 def plot_plain_graph(df, type="candle",
                      mav=None,
-                    style=plain_style,
+                    style=_plain_style,
                     save_path='candlestick_plain.png'
                     ):
     fig = plot_mpf_graph(df, style=style, mav=mav, type=type)
