@@ -545,8 +545,14 @@ def calculate_proba_close_lower_than_nextday_high_conditional(df):
 
 
 
-def download_stock_price(stock_ticker, start_date=None, end_date=None, **kwargs):
-    data = yf.download(stock_ticker, start=start_date, end=end_date, **kwargs)
+def download_stock_price(stock_ticker, start_date=None, end_date=None, 
+                         multi_level_index=False,
+                         **kwargs
+                         ):
+    data = yf.download(stock_ticker, start=start_date, end=end_date, 
+                       multi_level_index=multi_level_index,
+                       **kwargs
+                       )
     if isinstance(data.columns, MultiIndex):
         data.columns = data.columns.droplevel(1)
     return data
@@ -1099,7 +1105,7 @@ def plot_mpf_graph(df, style, type="candle", mav=None):
                                 )
     return fig
 
-def get_plain_sytle() -> mpf.Style:
+def get_plain_style():
     return mpf.make_mpf_style(base_mpf_style='charles',
                                 rc={'axes.edgecolor': 'white',   # hide axis lines
                                     'axes.facecolor': 'white',   # background
@@ -1110,7 +1116,7 @@ def get_plain_sytle() -> mpf.Style:
                                     }
                                 )
     
-_plain_style = get_plain_sytle()
+_plain_style = get_plain_style()
 
 
 def plot_plain_graph(df, type="candle",
